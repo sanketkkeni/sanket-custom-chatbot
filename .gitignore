@@ -34,3 +34,7 @@ Thumbs.db
 
 # Project
 .opencode/
+
+# Playwright
+frontend/test-results/
+
