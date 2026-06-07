@@ -33,7 +33,7 @@ export default function SyncStatus({ status, syncing, onSync }: SyncStatusProps)
           </span>
         </div>
         {!isRunning && (
-          <button onClick={onSync} size="sm" className="text-sm text-primary-400 hover:text-primary-300">
+          <button onClick={onSync} className="text-sm text-primary-400 hover:text-primary-300">
             Sync Again
           </button>
         )}

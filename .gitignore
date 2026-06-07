@@ -19,8 +19,9 @@ infrastructure/*.tfplan
 
 # Environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.vercel.example
 
 # OS
 .DS_Store
