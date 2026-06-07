@@ -23,7 +23,6 @@ resource "aws_lambda_function" "kb_api" {
       CHUNKING_STRATEGY      = var.chunking_strategy
       FIXED_SIZE_MAX_TOKENS  = tostring(var.fixed_size_max_tokens)
       FIXED_SIZE_OVERLAP_PCT = tostring(var.fixed_size_overlap_percentage)
-      AWS_REGION             = var.aws_region
       LOG_LEVEL              = "INFO"
     }
   }
@@ -52,7 +51,6 @@ resource "aws_lambda_function" "chat_handler" {
       CONVERSATIONS_TABLE_NAME = aws_dynamodb_table.conversations.name
       HISTORY_BUCKET         = aws_s3_bucket.history.bucket
       CHAT_MODEL_ARN         = local.chat_model_arn
-      AWS_REGION             = var.aws_region
       LOG_LEVEL              = "INFO"
     }
   }

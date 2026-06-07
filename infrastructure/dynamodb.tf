@@ -18,10 +18,8 @@ resource "aws_dynamodb_table" "kbs" {
     type = "S"
   }
 
-  key_schema = [
-    { attribute = "userId", key_type = "HASH" },
-    { attribute = "kbId", key_type = "RANGE" },
-  ]
+  hash_key  = "userId"
+  range_key = "kbId"
 
   global_secondary_index {
     name            = "bedrockKbId-index"
@@ -54,10 +52,8 @@ resource "aws_dynamodb_table" "agents" {
     type = "S"
   }
 
-  key_schema = [
-    { attribute = "userId", key_type = "HASH" },
-    { attribute = "agentId", key_type = "RANGE" },
-  ]
+  hash_key  = "userId"
+  range_key = "agentId"
 
   global_secondary_index {
     name            = "kbId-index"
@@ -95,10 +91,8 @@ resource "aws_dynamodb_table" "conversations" {
     type = "S"
   }
 
-  key_schema = [
-    { attribute = "userId", key_type = "HASH" },
-    { attribute = "conversationId", key_type = "RANGE" },
-  ]
+  hash_key  = "userId"
+  range_key = "conversationId"
 
   global_secondary_index {
     name            = "agentId-index"
