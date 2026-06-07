@@ -78,15 +78,14 @@ def handle_chat(user_id, body):
     prompt = (
         'You are a helpful assistant. Use the provided knowledge base to answer questions.\n'
         'If the user greets you or makes small talk, respond naturally.\n'
-        'If the context contains relevant information, use it to answer.\n'
-        'If the context is empty or irrelevant, let the user know you can help with their documents.\n'
+        'If the search results contain relevant information, use it to answer.\n'
+        'If the search results are empty or irrelevant, let the user know you can help with their documents.\n'
     )
     if instructions:
         prompt += f'Additional instructions: {instructions}\n\n'
 
     prompt += (
-        'Human: {input_text}\n\n'
-        'Context:\n{context}\n\n'
+        'Search results:\n$search_results$\n\n'
         'Assistant:'
     )
 

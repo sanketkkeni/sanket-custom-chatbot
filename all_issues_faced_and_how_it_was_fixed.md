@@ -233,10 +233,14 @@ Sub-issue D: `RetrieveAndGenerate` internally calls `bedrock:InvokeModel` on **b
 
 **Root Cause**: The `RetrieveAndGenerate` API has a default system prompt that strictly instructs the model to only answer from the provided context. When no knowledge base context is returned (as expected for greetings), the model follows the default prompt and refuses to respond. The `chat_handler.py` code only supplied a custom `generationConfiguration.promptTemplate.textPromptTemplate` when agent `instructions` were provided — without it, Bedrock's default refusal prompt kicked in.
 
-**Fix**: `generationConfiguration` is now always set in `query_config` — regardless of whether agent `instructions` exist. The prompt template includes instructions to respond naturally to greetings and small talk, use context when relevant, and let the user know the assistant can help with their documents when context is empty.
+**Fix**: Two-part fix:
+
+1. `generationConfiguration` is now always set in `query_config` — regardless of whether agent `instructions` exist. The prompt template includes instructions to respond naturally to greetings and small talk, use context when relevant, and let the user know the assistant can help with their documents when context is empty.
+
+2. The first attempt used `{context}` as the placeholder for retrieved search results, but the `textPromptTemplate` requires the `$search_results$` placeholder — the API throws `ValidationException` without it. Changed `{context}` → `$search_results$` and removed `{input_text}` (user input is handled automatically by the API).
 
 **Files changed**:
-- `backend/chat_handler.py` — Restructured the prompt building logic: always sets `generationConfiguration`, layer agent instructions on top when provided
+- `backend/chat_handler.py` — Restructured the prompt building logic: always sets `generationConfiguration`, uses `$search_results$` placeholder
 
 ---
 
@@ -257,3 +261,4 @@ Sub-issue D: `RetrieveAndGenerate` internally calls `bedrock:InvokeModel` on **b
 | KB deletion stuck on vector cleanup | Backend Lambda + AWS API | `dataDeletionPolicy='DELETE'` caused vector cleanup conflict — changed to `RETAIN` |
 | Chat fails after model switch | Anthropic FTU + IAM | FTU form not submitted for this account; Lambda IAM role missing `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions` |
 | Claude 3 Haiku legacy error | Model deprecation + inference profile | `anthropic.claude-3-haiku-20240307-v1:0` marked LEGACY; switched to inference profile `us.anthropic.claude-haiku-4-5-20251001-v1:0`; needed `bedrock:GetInferenceProfile` + `InvokeModel` on both inference profile ARN AND underlying foundation model ARNs in all 3 US regions (us-east-1, us-east-2, us-west-2) |
+| Greetings return refusal | Backend Lambda + prompt template | `generationConfiguration` only set when agent instructions existed; `{context}` placeholder should be `$search_results$` per API requirement |
