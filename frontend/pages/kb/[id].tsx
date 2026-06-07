@@ -120,6 +120,13 @@ export default function KBDetail() {
             <div className="flex gap-4 text-sm text-gray-400">
               <span>Status: <span className={kb.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}>{kb.status}</span></span>
               {syncing && <span className="text-yellow-400 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Syncing...</span>}
+              {!syncing && kb.lastSyncStatus && kb.lastSyncStatus !== 'NONE' && (
+                <span>Last sync: <span className={
+                  kb.lastSyncStatus === 'COMPLETE' ? 'text-green-400' :
+                  kb.lastSyncStatus === 'FAILED' ? 'text-red-400' :
+                  'text-yellow-400'
+                }>{kb.lastSyncStatus}</span></span>
+              )}
               <span>Documents: {kb.documentCount || 0}</span>
             </div>
           </div>
@@ -135,16 +142,28 @@ export default function KBDetail() {
 
         {error && <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">{error}</div>}
 
-        {(syncing || (syncStatus && syncStatus.status !== 'COMPLETE' && syncStatus.status !== 'FAILED')) && (
+        {(syncing || syncStatus) && syncStatus?.status !== 'COMPLETE' && (
           <div className="mb-6 glass-dark p-4 rounded-xl">
-            <div className="flex items-center gap-2 text-yellow-400 mb-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
+            <div className={`flex items-center gap-2 mb-2 ${
+              syncStatus?.status === 'FAILED' ? 'text-red-400' : 'text-yellow-400'
+            }`}>
+              {syncStatus?.status === 'FAILED' ? (
+                <AlertCircle className="h-5 w-5" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              )}
               <span>Sync Status: {syncStatus?.status || 'STARTING'}</span>
             </div>
             {syncStatus?.statistics && (
               <div className="text-sm text-gray-400">
                 Scanned: {syncStatus.statistics.numberofDocumentsScanned} | Indexed: {syncStatus.statistics.numberofNewDocumentsIndexed}
+                {syncStatus.statistics.numberofDocumentsFailed > 0 && (
+                  <> | <span className="text-red-400">Failed: {syncStatus.statistics.numberofDocumentsFailed}</span></>
+                )}
               </div>
+            )}
+            {syncStatus?.error && (
+              <div className="mt-2 text-sm text-red-400/80 break-words">Error: {syncStatus.error}</div>
             )}
           </div>
         )}
