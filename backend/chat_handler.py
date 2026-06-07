@@ -101,15 +101,29 @@ def handle_chat(user_id, body):
 
         # Extract sources
         sources = []
+        seen = set()
         for citation in citations:
             for ref in citation.get('retrievedReferences', []):
                 location = ref.get('location', {})
                 s3_location = location.get('s3Location', {}) or {}
-                if s3_location.get('uri'):
-                    sources.append({
-                        'uri': s3_location['uri'],
-                        'content': ref.get('content', {}).get('text', '')[:200]
-                    })
+                uri = s3_location.get('uri', '')
+                if not uri:
+                    continue
+                metadata = ref.get('metadata', {}) or {}
+                source = {
+                    'uri': uri,
+                    'fileName': uri.split('/')[-1],
+                    'content': ref.get('content', {}).get('text', '')[:200],
+                    'chunkId': metadata.get('x-amz-bedrock-kb-chunk-id', ''),
+                    'pageNumber': metadata.get('x-amz-bedrock-kb-document-page-number'),
+                    'lineNumbers': metadata.get('x-amz-bedrock-kb-document-line-numbers'),
+                    'dataSourceId': metadata.get('x-amz-bedrock-kb-data-source-id', ''),
+                }
+                # Deduplicate by chunkId to avoid repeated same source
+                chunk_key = source['chunkId'] or uri
+                if chunk_key not in seen:
+                    seen.add(chunk_key)
+                    sources.append(source)
 
         # Save conversation history to S3 as MD
         s3_key = f"users/{user_id}/conversations/{conversation_id}.md"

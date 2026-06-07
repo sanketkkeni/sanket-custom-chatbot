@@ -98,6 +98,49 @@ def get_presigned_url(bucket, key, content_type=None):
 
 ---
 
+## Issue 7: KB Status Stuck on "CREATING" After Deploying Refresh Logic
+
+**Symptom**: Dashboard and KB detail page showed `Status: CREATING` and `Documents: 0` even after documents were uploaded and synced. The refresh functions were deployed but had no effect.
+
+**Root Cause**: The `refresh_kb_status()` and `refresh_document_count()` functions added to `backend/utils.py` used `datetime.utcnow().isoformat()` but `from datetime import datetime` was never added to the imports. Both functions silently failed (`except` logged a warning and returned `None`), leaving the DynamoDB status permanently at "CREATING".
+
+CloudWatch logs showed: `Failed to refresh KB status: name 'datetime' is not defined`
+
+**Fix**: Added `from datetime import datetime` to imports in `backend/utils.py`, rebuilt `kb_api.zip`, and redeployed via `aws lambda update-function-code`.
+
+**Files changed**:
+- `backend/utils.py` — 1 line added (import)
+
+---
+
+## Issue 8: Chat Returns AccessDenied — Missing `bedrock:Retrieve` Permission
+
+**Symptom**: Clicking "Chat" on a KB throws `Error: Chat failed: An error occurred (AccessDeniedException) when calling the RetrieveAndGenerate operation... is not authorized to perform: bedrock:Retrieve`.
+
+**Root Cause**: The Lambda IAM policy (`bedrock-chat-lambda-bedrock`) included `bedrock:RetrieveAndGenerate` but not `bedrock:Retrieve`. The `RetrieveAndGenerate` API internally calls `Retrieve`, which was denied.
+
+**Fix**: Added `bedrock:Retrieve` to the IAM policy actions list. Updated both the Terraform source (`infrastructure/iam.tf`) and the live policy via `aws iam create-policy-version`.
+
+**Files changed**:
+- `infrastructure/iam.tf` — 1 line added (`bedrock:Retrieve`)
+- Live IAM policy updated via AWS CLI
+
+---
+
+**Symptom**: Dashboard and KB detail page showed `Status: CREATING` and `Documents: 0` even after documents were uploaded and synced. The refresh functions were deployed but had no effect.
+
+**Root Cause**: The `refresh_kb_status()` and `refresh_document_count()` functions added to `backend/utils.py` used `datetime.utcnow().isoformat()` but `from datetime import datetime` was never added to the imports. Both functions silently failed (`except` logged a warning and returned `None`), leaving the DynamoDB status permanently at "CREATING".
+
+CloudWatch logs showed: `Failed to refresh KB status: name 'datetime' is not defined`
+
+**Fix**: Added `from datetime import datetime` to imports in `backend/utils.py`, rebuilt `kb_api.zip`, and redeployed via `aws lambda update-function-code`.
+
+**Files changed**:
+- `backend/utils.py` — 1 line added (import)
+
+---
+
+
 ## Summary of Root Causes
 
 | Issue | Category | Root Cause |
@@ -108,3 +151,5 @@ def get_presigned_url(bucket, key, content_type=None):
 | Zip not deployed | Terraform Cloud | Terraform didn't detect local zip changes |
 | Module not found in KB/chat pages | Frontend imports | Wrong relative import depth — `../` only goes up one level but files are two levels deep |
 | Upload presigned URL error | Backend Lambda | `ExpiresIn` passed inside `Params` to `generate_presigned_url` but it's a kwarg of the function, not an S3 API param |
+| KB status stuck on CREATING | Backend Lambda | `datetime` not imported in `utils.py` — refresh functions silently failed |
+| Chat AccessDenied on Retrieve | IAM policy | `bedrock:Retrieve` missing from Lambda IAM policy — `RetrieveAndGenerate` requires it internally |

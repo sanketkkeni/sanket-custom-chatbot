@@ -2,10 +2,20 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, User, Bot, ExternalLink } from 'lucide-react';
 import { sendChat } from '../lib/api';
 
+interface Source {
+  uri: string;
+  fileName: string;
+  content: string;
+  chunkId: string;
+  pageNumber?: number;
+  lineNumbers?: number[];
+  dataSourceId: string;
+}
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  sources?: { uri: string; content: string }[];
+  sources?: Source[];
 }
 
 interface ChatPanelProps {
@@ -68,11 +78,11 @@ export default function ChatPanel({ kbId, kbName }: ChatPanelProps) {
               <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
               {msg.sources && msg.sources.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-dark-500">
-                  <p className="text-xs text-gray-500 mb-2">Sources:</p>
+                  <p className="text-xs text-gray-500 mb-2">Sources ({msg.sources.length}):</p>
                   {msg.sources.map((s, j) => (
-                    <div key={j} className="text-xs text-gray-400 mb-1 flex items-start gap-1">
+                    <div key={j} className="text-xs text-gray-400 mb-1.5 flex items-start gap-1">
                       <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      <span className="truncate">{s.uri?.split('/').pop() || s.uri}</span>
+                      <span className="truncate">{s.fileName}{s.pageNumber ? ` (p.${s.pageNumber})` : ''}{s.chunkId ? ` [${s.chunkId.slice(0, 8)}]` : ''}</span>
                     </div>
                   ))}
                 </div>

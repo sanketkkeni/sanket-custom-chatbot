@@ -2,6 +2,7 @@ import os
 import json
 import base64
 import decimal
+from datetime import datetime
 import boto3
 import time
 import uuid
@@ -250,6 +251,43 @@ def list_s3_files(bucket, prefix):
                     'etag': obj['ETag'].strip('"')
                 })
     return files
+
+def refresh_kb_status(user_id, kb_id, bedrock_kb_id):
+    """Check Bedrock for actual KB status and update DynamoDB if changed."""
+    try:
+        response = bedrock_agent.get_knowledge_base(knowledgeBaseId=bedrock_kb_id)
+        actual_status = response['knowledgeBase']['status']
+        kbs_table.update_item(
+            Key={'userId': user_id, 'kbId': kb_id},
+            UpdateExpression='SET #st = :status, updatedAt = :now',
+            ExpressionAttributeNames={'#st': 'status'},
+            ExpressionAttributeValues={
+                ':status': actual_status,
+                ':now': datetime.utcnow().isoformat()
+            }
+        )
+        return actual_status
+    except Exception as e:
+        logger.warning(f"Failed to refresh KB status: {str(e)}")
+        return None
+
+def refresh_document_count(user_id, kb_id, s3_prefix):
+    """Count files in S3 for the KB prefix and update DynamoDB."""
+    try:
+        files = list_s3_files(DOCUMENTS_BUCKET, s3_prefix)
+        count = len(files)
+        kbs_table.update_item(
+            Key={'userId': user_id, 'kbId': kb_id},
+            UpdateExpression='SET documentCount = :dc, updatedAt = :now',
+            ExpressionAttributeValues={
+                ':dc': count,
+                ':now': datetime.utcnow().isoformat()
+            }
+        )
+        return count
+    except Exception as e:
+        logger.warning(f"Failed to refresh document count: {str(e)}")
+        return None
 
 def get_presigned_url(bucket, key, content_type=None):
     params = {

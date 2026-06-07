@@ -8,6 +8,7 @@ from utils import (
     DOCUMENTS_BUCKET, generate_kb_id, generate_agent_id,
     create_knowledge_base, delete_knowledge_base, start_ingestion,
     get_ingestion_status, list_s3_files, get_presigned_url,
+    refresh_kb_status, refresh_document_count,
     bedrock_agent, s3, logger
 )
 
@@ -134,6 +135,16 @@ def handle_list_kbs(user_id, query_params):
     items = response.get('Items', [])
     for item in items:
         item.pop('vectorIndexArn', None)
+        # Refresh status if stuck at CREATING
+        if item.get('status') == 'CREATING' and item.get('bedrockKbId'):
+            new_status = refresh_kb_status(user_id, item['kbId'], item['bedrockKbId'])
+            if new_status:
+                item['status'] = new_status
+        # Refresh document count from S3
+        s3_prefix = item.get('s3Prefix', f"users/{user_id}/kbs/{item['kbId']}/")
+        real_count = refresh_document_count(user_id, item['kbId'], s3_prefix)
+        if real_count is not None:
+            item['documentCount'] = real_count
     return create_response(200, {'kbs': items, 'count': len(items)})
 
 
@@ -142,6 +153,16 @@ def handle_get_kb(user_id, kb_id):
     kb = response.get('Item')
     if not kb:
         return create_response(404, {'message': 'KB not found'})
+    # Refresh status if stuck at CREATING
+    if kb.get('status') == 'CREATING' and kb.get('bedrockKbId'):
+        new_status = refresh_kb_status(user_id, kb_id, kb['bedrockKbId'])
+        if new_status:
+            kb['status'] = new_status
+    # Refresh document count from S3
+    s3_prefix = kb.get('s3Prefix', f"users/{user_id}/kbs/{kb_id}/")
+    real_count = refresh_document_count(user_id, kb_id, s3_prefix)
+    if real_count is not None:
+        kb['documentCount'] = real_count
     return create_response(200, kb)
 
 

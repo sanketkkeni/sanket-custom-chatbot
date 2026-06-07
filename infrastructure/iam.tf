@@ -151,6 +151,7 @@ resource "aws_iam_policy" "lambda_bedrock" {
           "bedrock:StartIngestionJob",
           "bedrock:GetIngestionJob",
           "bedrock:ListIngestionJobs",
+          "bedrock:Retrieve",
           "bedrock:RetrieveAndGenerate"
         ]
         Resource = "*"
