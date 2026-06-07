@@ -39,3 +39,9 @@ Thumbs.db
 # Playwright
 frontend/test-results/
 
+# Test artifacts
+*.png
+deployed_kb/
+list_kbs_test.json
+output.txt
+
