@@ -8,7 +8,7 @@ from utils import (
     DOCUMENTS_BUCKET, generate_kb_id, generate_agent_id,
     create_knowledge_base, delete_knowledge_base, start_ingestion,
     get_ingestion_status, list_s3_files, get_presigned_url,
-    refresh_kb_status, refresh_document_count,
+    refresh_kb_status, refresh_document_count, refresh_kb_sync_status,
     bedrock_agent, s3, logger
 )
 
@@ -110,6 +110,7 @@ def handle_create_kb(user_id, body):
             's3Prefix': doc_prefix,
             'vectorIndexArn': index_arn,
             'documentCount': 0,
+            'indexedCount': 0,
             'lastSyncStatus': 'NONE',
             'lastSyncError': '',
             'createdAt': datetime.utcnow().isoformat(),
@@ -140,6 +141,11 @@ def handle_list_kbs(user_id, query_params):
             new_status = refresh_kb_status(user_id, item['kbId'], item['bedrockKbId'])
             if new_status:
                 item['status'] = new_status
+        # Refresh sync status if stuck at IN_PROGRESS
+        if item.get('lastSyncStatus') == 'IN_PROGRESS' and item.get('bedrockKbId') and item.get('dataSourceId') and item.get('lastSyncJobId'):
+            new_sync_status = refresh_kb_sync_status(user_id, item['kbId'], item['bedrockKbId'], item['dataSourceId'], item['lastSyncJobId'])
+            if new_sync_status:
+                item['lastSyncStatus'] = new_sync_status
         # Refresh document count from S3
         s3_prefix = item.get('s3Prefix', f"users/{user_id}/kbs/{item['kbId']}/")
         real_count = refresh_document_count(user_id, item['kbId'], s3_prefix)
@@ -158,6 +164,11 @@ def handle_get_kb(user_id, kb_id):
         new_status = refresh_kb_status(user_id, kb_id, kb['bedrockKbId'])
         if new_status:
             kb['status'] = new_status
+    # Refresh sync status if stuck at IN_PROGRESS
+    if kb.get('lastSyncStatus') == 'IN_PROGRESS' and kb.get('bedrockKbId') and kb.get('dataSourceId') and kb.get('lastSyncJobId'):
+        new_sync_status = refresh_kb_sync_status(user_id, kb_id, kb['bedrockKbId'], kb['dataSourceId'], kb['lastSyncJobId'])
+        if new_sync_status:
+            kb['lastSyncStatus'] = new_sync_status
     # Refresh document count from S3
     s3_prefix = kb.get('s3Prefix', f"users/{user_id}/kbs/{kb_id}/")
     real_count = refresh_document_count(user_id, kb_id, s3_prefix)
@@ -298,9 +309,10 @@ def handle_get_sync_status(user_id, kb_id):
                 ':now': datetime.utcnow().isoformat()
             }
             if status['status'] == 'COMPLETE' and status.get('statistics'):
-                doc_count = status['statistics'].get('numberofNewDocumentsIndexed', 0) + status['statistics'].get('numberofModifiedDocumentsIndexed', 0)
-                update_expr += ', documentCount = documentCount + :dc'
-                expr_attrs[':dc'] = doc_count
+                new_count = status['statistics'].get('numberofNewDocumentsIndexed', 0)
+                if new_count > 0:
+                    update_expr += ', indexedCount = indexedCount + :dc'
+                    expr_attrs[':dc'] = new_count
 
             kbs_table.update_item(
                 Key={'userId': user_id, 'kbId': kb_id},
@@ -334,6 +346,7 @@ def handle_get_stats(user_id, kb_id):
         'name': kb.get('name', ''),
         'status': kb.get('status', ''),
         'documentCount': kb.get('documentCount', 0),
+        'indexedCount': kb.get('indexedCount', 0),
         'lastSyncStatus': kb.get('lastSyncStatus', 'NONE'),
         'lastSyncError': kb.get('lastSyncError', ''),
         'totalFiles': len(files),

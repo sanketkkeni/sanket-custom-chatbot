@@ -120,14 +120,16 @@ export default function KBDetail() {
             <div className="flex gap-4 text-sm text-gray-400">
               <span>Status: <span className={kb.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}>{kb.status}</span></span>
               {syncing && <span className="text-yellow-400 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Syncing...</span>}
-              {!syncing && kb.lastSyncStatus && kb.lastSyncStatus !== 'NONE' && (
-                <span>Last sync: <span className={
-                  kb.lastSyncStatus === 'COMPLETE' ? 'text-green-400' :
-                  kb.lastSyncStatus === 'FAILED' ? 'text-red-400' :
-                  'text-yellow-400'
-                }>{kb.lastSyncStatus}</span></span>
+              {!syncing && kb.lastSyncStatus === 'COMPLETE' && (
+                <span>Last sync: <span className="text-green-400">Completed</span></span>
               )}
-              <span>Documents: {kb.documentCount || 0}</span>
+              {!syncing && kb.lastSyncStatus === 'FAILED' && (
+                <span>Last sync: <span className="text-red-400">Failed</span></span>
+              )}
+              {!syncing && kb.lastSyncStatus === 'IN_PROGRESS' && (
+                <span className="text-yellow-400">Sync in progress...</span>
+              )}
+              <span>Files: {kb.documentCount || 0}</span>
             </div>
           </div>
           <button
@@ -175,7 +177,7 @@ export default function KBDetail() {
               <div className="text-sm text-gray-400">Total Files</div>
             </div>
             <div className="glass-dark p-4 rounded-xl text-center">
-              <div className="text-2xl font-bold text-accent-400">{stats.documentCount}</div>
+              <div className="text-2xl font-bold text-accent-400">{stats.indexedCount ?? 0}</div>
               <div className="text-sm text-gray-400">Indexed Documents</div>
             </div>
             <div className="glass-dark p-4 rounded-xl text-center">

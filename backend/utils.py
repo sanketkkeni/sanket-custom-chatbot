@@ -296,6 +296,32 @@ def refresh_document_count(user_id, kb_id, s3_prefix):
         logger.warning(f"Failed to refresh document count: {str(e)}")
         return None
 
+def refresh_kb_sync_status(user_id, kb_id, bedrock_kb_id, data_source_id, job_id):
+    """Check actual Bedrock ingestion job status and fix DynamoDB if stuck on IN_PROGRESS."""
+    try:
+        status = get_ingestion_status(bedrock_kb_id, data_source_id, job_id)
+        if status['status'] in ('COMPLETE', 'FAILED', 'STOPPED'):
+            update_expr = 'SET lastSyncStatus = :status, updatedAt = :now'
+            expr_attrs = {
+                ':status': status['status'],
+                ':now': datetime.utcnow().isoformat()
+            }
+            if status['status'] == 'COMPLETE' and status.get('statistics'):
+                new_count = status['statistics'].get('numberofNewDocumentsIndexed', 0)
+                if new_count > 0:
+                    update_expr += ', indexedCount = indexedCount + :dc'
+                    expr_attrs[':dc'] = new_count
+            kbs_table.update_item(
+                Key={'userId': user_id, 'kbId': kb_id},
+                UpdateExpression=update_expr,
+                ExpressionAttributeValues=expr_attrs
+            )
+            return status['status']
+        return status['status']
+    except Exception as e:
+        logger.warning(f"Failed to refresh sync status: {str(e)}")
+        return None
+
 def get_presigned_url(bucket, key, content_type=None):
     params = {
         'Bucket': bucket,
