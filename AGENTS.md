@@ -63,3 +63,8 @@ project/
 - Terraform: `cd infrastructure; terraform init; terraform plan -out plan.tfplan; terraform apply plan.tfplan`
 - Build Lambdas: `cd backend; ./build.ps1`
 - Dev server: `cd frontend; npm run dev`
+- Update Lambda directly: `aws lambda update-function-code --function-name <name> --zip-file fileb://infrastructure/<name>.zip`
+
+### Documentation
+- When fixing a bug, document the issue in `all_issues_faced_and_how_it_was_fixed.md`
+- Include: symptom, root cause, fix applied, files changed

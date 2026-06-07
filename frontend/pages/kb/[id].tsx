@@ -1,9 +1,9 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { Brain, ArrowLeft, Loader2, Upload, FileText, Trash2, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { getKB, listFiles, deleteFile, startSync, getSyncStatus, getKBStats, getUploadUrl, uploadToS3 } from '../lib/api';
+import { getKB, listFiles, deleteFile, startSync, getSyncStatus, getKBStats, getUploadUrl, uploadToS3 } from '../../lib/api';
 
 export default function KBDetail() {
   const router = useRouter();

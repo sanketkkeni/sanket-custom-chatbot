@@ -48,7 +48,8 @@ export default function Signup() {
                 <CheckCircle className="h-10 w-10 text-green-400" />
               </div>
               <h1 className="text-3xl font-bold mb-2">Check Your Email</h1>
-              <p className="text-gray-400 mb-6">We&apos;ve sent a verification code to<br /><span className="text-white font-medium">{email}</span></p>
+              <p className="text-gray-400 mb-2">We&apos;ve sent a verification code to<br /><span className="text-white font-medium">{email}</span></p>
+              <p className="text-gray-500 text-sm mb-6">Check your inbox and spam folder for the code.</p>
               <button onClick={() => router.push(`/confirm?email=${encodeURIComponent(email)}`)} className="w-full py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-semibold transition-colors">
                 Enter Verification Code
               </button>

@@ -134,3 +134,28 @@ test.describe('Sign Up Flow (e2e)', () => {
     await expect(page.getByText(/user already exists|account already exists/i)).toBeVisible({ timeout: 30000 });
   });
 });
+
+test.describe('KB Management', () => {
+  test('should load KB manage page via direct navigation', async ({ page }) => {
+    const email = 'skkeni06@gmail.com';
+    const password = 'Test@123456';
+
+    // Login
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Sign In' }).click();
+
+    // Wait for dashboard to confirm login success
+    await expect(page.locator('h1')).toContainText('Knowledge Bases', { timeout: 15000 });
+
+    // Navigate directly to the existing KB manage page
+    await page.goto('/kb/kb-f45697583d10');
+    await page.waitForTimeout(3000);
+
+    // Should show KB detail sections
+    await expect(page.getByText('Back to Dashboard')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Upload Documents')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Files \(\d+\)/)).toBeVisible();
+  });
+});

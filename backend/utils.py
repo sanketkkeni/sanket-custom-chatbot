@@ -1,11 +1,19 @@
 import os
 import json
 import base64
+import decimal
 import boto3
 import time
 import uuid
 import logging
 from boto3.dynamodb.conditions import Key
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            return int(obj) if obj % 1 == 0 else float(obj)
+        return super().default(obj)
 
 logger = logging.getLogger()
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -59,7 +67,7 @@ def create_response(status_code, body=None):
         'multiValueHeaders': CORS_MULTI_HEADERS,
     }
     if body is not None:
-        response['body'] = json.dumps(body) if isinstance(body, dict) else body
+        response['body'] = json.dumps(body, cls=DecimalEncoder) if isinstance(body, (dict, list)) else body
     else:
         response['body'] = ''
     return response
@@ -115,7 +123,7 @@ def create_knowledge_base(user_id, kb_id, name):
     index_name = f"idx-{kb_id}"
 
     s3vectors.create_index(
-        vectorBucket=VECTOR_BUCKET_NAME,
+        vectorBucketName=VECTOR_BUCKET_NAME,
         indexName=index_name,
         dataType='float32',
         dimension=VECTOR_DIMENSION,
@@ -195,7 +203,7 @@ def delete_knowledge_base(bedrock_kb_id, index_arn):
     try:
         index_name = index_arn.split('/index/')[-1]
         s3vectors.delete_index(
-            vectorBucket=VECTOR_BUCKET_NAME,
+            vectorBucketName=VECTOR_BUCKET_NAME,
             indexName=index_name
         )
     except Exception as e:
@@ -247,8 +255,7 @@ def get_presigned_url(bucket, key, content_type=None):
     params = {
         'Bucket': bucket,
         'Key': key,
-        'ExpiresIn': 3600
     }
     if content_type:
         params['ContentType'] = content_type
-    return s3.generate_presigned_url('put_object', Params=params)
+    return s3.generate_presigned_url('put_object', Params=params, ExpiresIn=3600)

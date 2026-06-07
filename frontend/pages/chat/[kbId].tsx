@@ -1,9 +1,9 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { Brain, Send, Loader2, ArrowLeft, User, Bot, ExternalLink, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { sendChat, getKB } from '../lib/api';
+import { sendChat, getKB } from '../../lib/api';
 
 interface Message {
   role: 'user' | 'assistant';

@@ -57,23 +57,26 @@ resource "aws_apigatewayv2_stage" "rest_stage" {
 
 # KB API Integration
 resource "aws_apigatewayv2_integration" "kb_api_integration" {
-  api_id           = aws_apigatewayv2_api.rest_api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = aws_lambda_function.kb_api.arn
+  api_id              = aws_apigatewayv2_api.rest_api.id
+  integration_type    = "AWS_PROXY"
+  integration_uri     = aws_lambda_function.kb_api.arn
+  payload_format_version = "2.0"
 }
 
 # Chat Handler Integration
 resource "aws_apigatewayv2_integration" "chat_integration" {
-  api_id           = aws_apigatewayv2_api.rest_api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = aws_lambda_function.chat_handler.arn
+  api_id              = aws_apigatewayv2_api.rest_api.id
+  integration_type    = "AWS_PROXY"
+  integration_uri     = aws_lambda_function.chat_handler.arn
+  payload_format_version = "2.0"
 }
 
 # History Handler Integration
 resource "aws_apigatewayv2_integration" "history_integration" {
-  api_id           = aws_apigatewayv2_api.rest_api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = aws_lambda_function.history_handler.arn
+  api_id              = aws_apigatewayv2_api.rest_api.id
+  integration_type    = "AWS_PROXY"
+  integration_uri     = aws_lambda_function.history_handler.arn
+  payload_format_version = "2.0"
 }
 
 # KB API Routes
