@@ -225,6 +225,21 @@ Sub-issue D: `RetrieveAndGenerate` internally calls `bedrock:InvokeModel` on **b
 
 ---
 
+---
+
+## Issue 14: Greetings Fail With "Sorry, I am unable to assist you with this request"
+
+**Symptom**: Sending a greeting ("hi", "hello", "how are you?") returns `Sorry, I am unable to assist you with this request` instead of a natural response.
+
+**Root Cause**: The `RetrieveAndGenerate` API has a default system prompt that strictly instructs the model to only answer from the provided context. When no knowledge base context is returned (as expected for greetings), the model follows the default prompt and refuses to respond. The `chat_handler.py` code only supplied a custom `generationConfiguration.promptTemplate.textPromptTemplate` when agent `instructions` were provided — without it, Bedrock's default refusal prompt kicked in.
+
+**Fix**: `generationConfiguration` is now always set in `query_config` — regardless of whether agent `instructions` exist. The prompt template includes instructions to respond naturally to greetings and small talk, use context when relevant, and let the user know the assistant can help with their documents when context is empty.
+
+**Files changed**:
+- `backend/chat_handler.py` — Restructured the prompt building logic: always sets `generationConfiguration`, layer agent instructions on top when provided
+
+---
+
 ## Summary of Root Causes
 
 | Issue | Category | Root Cause |

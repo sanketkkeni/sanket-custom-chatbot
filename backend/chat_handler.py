@@ -74,18 +74,27 @@ def handle_chat(user_id, body):
         'modelArn': model_arn
     }
 
+    # Build prompt template
+    prompt = (
+        'You are a helpful assistant. Use the provided knowledge base to answer questions.\n'
+        'If the user greets you or makes small talk, respond naturally.\n'
+        'If the context contains relevant information, use it to answer.\n'
+        'If the context is empty or irrelevant, let the user know you can help with their documents.\n'
+    )
     if instructions:
-        query_config['generationConfiguration'] = {
-            'promptTemplate': {
-                'textPromptTemplate': (
-                    'You are a helpful assistant. Use the provided knowledge base to answer questions.\n'
-                    f'Additional instructions: {instructions}\n\n'
-                    'Human: {input_text}\n\n'
-                    'Use the following context from the knowledge base to answer:\n{context}\n\n'
-                    'Assistant:'
-                )
-            }
+        prompt += f'Additional instructions: {instructions}\n\n'
+
+    prompt += (
+        'Human: {input_text}\n\n'
+        'Context:\n{context}\n\n'
+        'Assistant:'
+    )
+
+    query_config['generationConfiguration'] = {
+        'promptTemplate': {
+            'textPromptTemplate': prompt
         }
+    }
 
     try:
         response = bedrock_agent_runtime.retrieve_and_generate(

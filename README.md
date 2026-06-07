@@ -4,6 +4,18 @@ A full-stack **Retrieval-Augmented Generation (RAG)** application that lets user
 
 Built with Next.js, AWS Lambda, Cognito, DynamoDB, and Amazon Bedrock.
 
+**Live app**: [https://sanket-custom-chatbot.vercel.app/](https://sanket-custom-chatbot.vercel.app/)
+
+---
+
+## What Can You Do With This App?
+
+Think of this as a **smart document expert** for your files. Upload documents (PDFs, Word files, text files, etc.), then ask questions in plain English — the app reads your documents and gives answers with citations showing exactly where the information came from.
+
+**Example**: Upload a 300-page company handbook, then ask _"What's our remote work policy?"_ — the app finds the answer in seconds.
+
+No technical skills needed beyond uploading files and typing questions.
+
 ---
 
 ## Features
