@@ -31,7 +31,7 @@ variable "vector_dimension" {
 variable "chat_model_id" {
   description = "Bedrock chat model ID for RetrieveAndGenerate"
   type        = string
-  default     = "amazon.nova-micro-v1:0"
+  default     = "anthropic.claude-3-haiku-20240307-v1:0"
 }
 
 variable "s3_bucket_prefix" {
@@ -59,7 +59,7 @@ variable "chunking_strategy" {
 variable "fixed_size_max_tokens" {
   description = "Maximum number of tokens per chunk for FIXED_SIZE chunking"
   type        = number
-  default     = 256
+  default     = 1500
 }
 
 variable "fixed_size_overlap_percentage" {

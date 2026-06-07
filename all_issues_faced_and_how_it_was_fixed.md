@@ -151,6 +151,38 @@ CloudWatch logs showed: `Failed to refresh KB status: name 'datetime' is not def
 ---
 
 
+## Issue 10: Amazon Nova Micro Returns Misleading Errors with RetrieveAndGenerate
+
+**Symptom**: Chat responses said *"The model cannot find sufficient information"* and *"Cannot read 'SherlockHolmesComplete.pdf' (this model does not support pdf input)"* even though the KB was synced successfully with documents.
+
+**Root Cause**: `amazon.nova-micro-v1:0` does **not** support the `RetrieveAndGenerate` API. AWS docs confirm Nova Micro supports Bedrock Knowledge Bases only *"through tool use (function calling)"*, not via the direct `retrieve_and_generate` call. When called, it returned a confusing error message as response text instead of a proper API error.
+
+**Fix**: Changed `chat_model_id` from `amazon.nova-micro-v1:0` to `anthropic.claude-3-haiku-20240307-v1:0` (Claude 3 Haiku fully supports `RetrieveAndGenerate`). Also increased `fixed_size_max_tokens` from 256 to 1500 so book chapters aren't split across too many tiny chunks.
+
+**Files changed**:
+- `infrastructure/variables.tf` — 2 lines changed (model ID + chunk size)
+- `AGENTS.md` — 1 line updated (stack docs)
+
+---
+
+## Issue 11: KB Deletion Stuck — Data Source Vector Cleanup Conflict
+
+**Symptom**: Deleting a KB from the UI returned `Delete unsuccessful — Unable to delete data from vector store for data source`. The KB and data source remained in `DELETE_UNSUCCESSFUL` status in the AWS console.
+
+**Root Cause**: The `create_data_source()` call defaulted to `dataDeletionPolicy='DELETE'`. When the Lambda's `delete_data_source()` ran, Bedrock tried to clean up vectors from the S3 Vectors index. But we also independently delete the vector index ourselves. This ordering conflict caused data source deletion to fail, which cascaded to the KB deletion failing.
+
+**Fix**: Added `dataDeletionPolicy='RETAIN'` to the `create_data_source()` call in `utils.py`. This tells Bedrock to skip vector cleanup during data source deletion — we handle vector index cleanup ourselves independently, which avoids the conflict.
+
+Post-fix, had to manually clean up the stuck resources:
+1. Updated the stuck data source's policy: `aws bedrock-agent update-data-source --data-deletion-policy RETAIN`
+2. Deleted data source: `aws bedrock-agent delete-data-source`
+3. Deleted KB: `aws bedrock-agent delete-knowledge-base`
+
+**Files changed**:
+- `backend/utils.py` — 1 line added (`dataDeletionPolicy='RETAIN'`)
+
+---
+
 ## Summary of Root Causes
 
 | Issue | Category | Root Cause |
@@ -164,3 +196,5 @@ CloudWatch logs showed: `Failed to refresh KB status: name 'datetime' is not def
 | KB status stuck on CREATING | Backend Lambda | `datetime` not imported in `utils.py` — refresh functions silently failed |
 | Chat AccessDenied on Retrieve | IAM policy | `bedrock:Retrieve` missing from Lambda IAM policy — `RetrieveAndGenerate` requires it internally |
 | Vercel build fails on size prop | Frontend build | `size="sm"` used on native `<button>` — not a valid HTML attribute, TypeScript rejects it |
+| Nova Micro not supported for RetrieveAndGenerate | Model config | `amazon.nova-micro-v1:0` doesn't support `RetrieveAndGenerate` API — returned misleading error text |
+| KB deletion stuck on vector cleanup | Backend Lambda + AWS API | `dataDeletionPolicy='DELETE'` caused vector cleanup conflict — changed to `RETAIN` |

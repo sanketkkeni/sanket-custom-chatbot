@@ -15,7 +15,7 @@
 - Database: DynamoDB (PAY_PER_REQUEST)
 - Storage: S3 (documents, conversation MD files)
 - Vector: S3 Vectors (shared bucket, unique index per KB)
-- AI: Bedrock Knowledge Bases, Amazon Nova Micro, Titan Text Embeddings v2
+- AI: Bedrock Knowledge Bases, Claude 3 Haiku (RetrieveAndGenerate), Titan Text Embeddings v2
 
 ### Naming
 - Terraform project_name: "bedrock-chat"

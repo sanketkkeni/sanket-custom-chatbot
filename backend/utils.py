@@ -178,7 +178,8 @@ def create_knowledge_base(user_id, kb_id, name):
                     'overlapPercentage': FIXED_SIZE_OVERLAP_PCT
                 }
             }
-        }
+        },
+        dataDeletionPolicy='RETAIN'
     )
 
     data_source_id = data_source_response['dataSource']['dataSourceId']
