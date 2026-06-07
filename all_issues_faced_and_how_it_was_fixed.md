@@ -54,8 +54,18 @@ aws lambda update-function-code --function-name bedrock-chat-kb-api --zip-file f
 
 ---
 
----
+## Issue 9: Vercel Build Fails — Invalid `size` Prop on Native `<button>`
 
+**Symptom**: Vercel deployment failed with: `Type error: Type '{ children: string; onClick: () => void; size: string; className: string; }' is not assignable to type 'DetailedHTMLProps...' Property 'size' does not exist on type '...'`.
+
+**Root Cause**: `frontend/components/SyncStatus.tsx` line 36 had `size="sm"` on a native HTML `<button>` element. The `size` prop is not a valid HTML attribute — it only exists on component library buttons (e.g. Chakra, MUI). Next.js TypeScript compilation caught this as a type error.
+
+**Fix**: Removed `size="sm"` from the `<button>` element. The `text-sm` Tailwind class already handles sizing.
+
+**Files changed**:
+- `frontend/components/SyncStatus.tsx` — 1 line changed
+
+---
 ## Issue 5: Module Not Found Error on KB Manage Page
 
 **Symptom**: Clicking "Manage" on a KB from the dashboard causes a `500 Build Error`: `Module not found: Can't resolve '../context/AuthContext'`. The page `/kb/{kbId}` crashes with a full-screen Next.js error overlay.
@@ -153,3 +163,4 @@ CloudWatch logs showed: `Failed to refresh KB status: name 'datetime' is not def
 | Upload presigned URL error | Backend Lambda | `ExpiresIn` passed inside `Params` to `generate_presigned_url` but it's a kwarg of the function, not an S3 API param |
 | KB status stuck on CREATING | Backend Lambda | `datetime` not imported in `utils.py` — refresh functions silently failed |
 | Chat AccessDenied on Retrieve | IAM policy | `bedrock:Retrieve` missing from Lambda IAM policy — `RetrieveAndGenerate` requires it internally |
+| Vercel build fails on size prop | Frontend build | `size="sm"` used on native `<button>` — not a valid HTML attribute, TypeScript rejects it |
