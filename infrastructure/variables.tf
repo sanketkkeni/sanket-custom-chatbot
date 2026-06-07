@@ -29,9 +29,9 @@ variable "vector_dimension" {
 }
 
 variable "chat_model_id" {
-  description = "Bedrock chat model ID for RetrieveAndGenerate"
+  description = "Bedrock chat model inference profile ID for RetrieveAndGenerate"
   type        = string
-  default     = "anthropic.claude-3-haiku-20240307-v1:0"
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 }
 
 variable "s3_bucket_prefix" {

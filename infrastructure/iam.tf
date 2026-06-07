@@ -152,7 +152,8 @@ resource "aws_iam_policy" "lambda_bedrock" {
           "bedrock:GetIngestionJob",
           "bedrock:ListIngestionJobs",
           "bedrock:Retrieve",
-          "bedrock:RetrieveAndGenerate"
+          "bedrock:RetrieveAndGenerate",
+          "bedrock:GetInferenceProfile"
         ]
         Resource = "*"
       },
@@ -163,8 +164,19 @@ resource "aws_iam_policy" "lambda_bedrock" {
         ]
         Resource = [
           local.embedding_model_arn,
-          local.chat_model_arn
+          local.chat_model_arn,
+          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+          "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "aws-marketplace:Subscribe",
+          "aws-marketplace:ViewSubscriptions"
+        ]
+        Resource = "*"
       }
     ]
   })
