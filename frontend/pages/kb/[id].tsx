@@ -119,6 +119,7 @@ export default function KBDetail() {
             <h1 className="text-3xl font-bold mb-2">{kb.name}</h1>
             <div className="flex gap-4 text-sm text-gray-400">
               <span>Status: <span className={kb.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}>{kb.status}</span></span>
+              {syncing && <span className="text-yellow-400 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Syncing...</span>}
               <span>Documents: {kb.documentCount || 0}</span>
             </div>
           </div>
@@ -134,13 +135,13 @@ export default function KBDetail() {
 
         {error && <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">{error}</div>}
 
-        {syncStatus && syncStatus.status !== 'COMPLETE' && syncStatus.status !== 'FAILED' && (
+        {(syncing || (syncStatus && syncStatus.status !== 'COMPLETE' && syncStatus.status !== 'FAILED')) && (
           <div className="mb-6 glass-dark p-4 rounded-xl">
             <div className="flex items-center gap-2 text-yellow-400 mb-2">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Sync Status: {syncStatus.status}</span>
+              <span>Sync Status: {syncStatus?.status || 'STARTING'}</span>
             </div>
-            {syncStatus.statistics && (
+            {syncStatus?.statistics && (
               <div className="text-sm text-gray-400">
                 Scanned: {syncStatus.statistics.numberofDocumentsScanned} | Indexed: {syncStatus.statistics.numberofNewDocumentsIndexed}
               </div>

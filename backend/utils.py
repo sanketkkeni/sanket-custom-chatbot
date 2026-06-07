@@ -128,7 +128,13 @@ def create_knowledge_base(user_id, kb_id, name):
         indexName=index_name,
         dataType='float32',
         dimension=VECTOR_DIMENSION,
-        distanceMetric='euclidean'
+        distanceMetric='euclidean',
+        metadataConfiguration={
+            'nonFilterableMetadataKeys': [
+                'AMAZON_BEDROCK_TEXT',
+                'AMAZON_BEDROCK_METADATA'
+            ]
+        }
     )
 
     index_arn = f"arn:aws:s3vectors:{AWS_REGION}:{account_id}:bucket/{VECTOR_BUCKET_NAME}/index/{index_name}"
