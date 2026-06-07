@@ -59,7 +59,7 @@ variable "chunking_strategy" {
 variable "fixed_size_max_tokens" {
   description = "Maximum number of tokens per chunk for FIXED_SIZE chunking"
   type        = number
-  default     = 1500
+  default     = 512
 }
 
 variable "fixed_size_overlap_percentage" {
