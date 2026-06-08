@@ -27,7 +27,8 @@ def lambda_handler(event, context):
     route = event.get('requestContext', {}).get('http', {}).get('path', '')
     path_params = event.get('pathParameters', {}) or {}
     query_params = event.get('queryStringParameters', {}) or {}
-    logger.info(f"KB API: {method} {route} user={user_id}")
+    route_key = event.get('requestContext', {}).get('routeKey', '')
+    logger.info(f"KB API: {method} {route} routeKey={route_key} params={path_params} user={user_id}")
 
     try:
         body = {}
@@ -52,8 +53,8 @@ def lambda_handler(event, context):
             file_key = path_params.get('file', '')
             return handle_delete_file(user_id, kb_id, file_key)
 
-        # DELETE /kbs/{id} - Delete KB
-        if method == 'DELETE' and route.startswith('/kbs/'):
+        # DELETE /kbs/{id} - Delete KB (BEWARE: must not match /kbs/{id}/files/{file})
+        if method == 'DELETE' and route.startswith('/kbs/') and '/files/' not in route:
             return handle_delete_kb(user_id, path_params['id'])
 
         # POST /kbs/{id}/upload - Generate presigned URL
