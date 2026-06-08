@@ -24,7 +24,7 @@ No technical skills needed beyond uploading files and typing questions.
 - **Knowledge Base Management** — Create up to 10 KBs per user, each backed by its own S3 Vector index
 - **File Upload** — Drag-and-drop file upload via S3 presigned URLs (PDF, TXT, MD, HTML, DOCX, CSV, XLSX)
 - **One-Click Sync** — Trigger Bedrock ingestion jobs and poll real-time status
-- **RAG Chat** — Ask natural-language questions against your documents using Amazon Nova Micro
+- **RAG Chat** — Ask natural-language questions against your documents using Claude Haiku 4.5 via Bedrock RetrieveAndGenerate
 - **Source Citations** — Every answer shows which documents were used as sources
 - **Conversation History** — Full chat history stored as Markdown in S3, searchable via DynamoDB
 - **Agent Instructions** — Configure custom system prompts per agent (future: multi-agent selector)
@@ -41,6 +41,8 @@ Browser ──► Vercel ──► API Gateway ──► Lambda ──► Dynamo
                  └──► Cognito (auth)
 ```
 
+📘 **Technical documentation**: See `tech-docs/README.md` for a detailed mermaid architecture diagram and `tech-docs/architecture.drawio` for a complete system diagram. Component breakdowns are in `tech-docs/01-infrastructure.md` through `tech-docs/07-build-deploy.md`.
+
 | Layer | Technology |
 |---|---|
 | **Frontend** | Next.js 14 (Pages Router), React 18, Tailwind CSS, lucide-react |
@@ -50,7 +52,7 @@ Browser ──► Vercel ──► API Gateway ──► Lambda ──► Dynamo
 | **Metadata** | DynamoDB (PAY_PER_REQUEST, 3 tables with GSIs) |
 | **Documents** | S3 (versioned, encrypted, CORS-configured) |
 | **Vectors** | S3 Vectors (shared bucket, unique index per user KB) |
-| **AI** | Amazon Bedrock — Titan Text Embeddings v2, Amazon Nova Micro |
+| **AI** | Amazon Bedrock — Titan Text Embeddings v2, Claude Haiku 4.5 (inference profile) |
 
 ---
 
@@ -82,8 +84,18 @@ C:\_src\opencode\sanket_custom_chatbot\
 │   ├── components/         # 10 reusable components
 │   └── styles/             # Tailwind globals (dark theme)
 ├── AGENTS.md               # Convention reference for AI coding assistants
-├── DOCS.md                 # Technical documentation
-└── README.md               # This file
+├── DOCS.md                 # Technical documentation (legacy)
+├── README.md               # This file
+└── tech-docs/              # In-depth technical documentation
+    ├── README.md           # Architecture overview with mermaid diagram
+    ├── architecture.drawio # Complete drawio system diagram
+    ├── 01-infrastructure.md
+    ├── 02-data-model.md
+    ├── 03-backend.md
+    ├── 04-frontend-pages.md
+    ├── 05-frontend-components.md
+    ├── 06-frontend-lib.md
+    └── 07-build-deploy.md
 ```
 
 ---
