@@ -378,5 +378,16 @@ if method == 'DELETE' and route.startswith('/kbs/'):           # only if /files/
     return handle_delete_kb(user_id, path_params['id'])
 ```
 
+**Sub-issue A**: The initial fix (reordering handlers) was deployed but didn't take effect. The root cause was a **stale zip file path** — `build.ps1` outputs zips to `backend/`, but `update-function-code` was reading from `infrastructure/` (an old pre-existing zip). The `CodeSha256` never changed and the old code kept running.
+
+**Sub-issue B (defense in depth)**: Even with correct routing, a `'/files/' not in route` guard was added to the KB-delete handler as a safety net:
+
+```python
+# Extra guard ensures KB-delete can never catch file-delete
+if method == 'DELETE' and route.startswith('/kbs/') and '/files/' not in route:
+    return handle_delete_kb(user_id, path_params['id'])
+```
+
 **Files changed**:
-- `backend/kb_api.py` — Reordered DELETE handlers: file-delete above KB-delete.
+- `backend/kb_api.py` — Reordered DELETE handlers (file-delete above KB-delete); added `'/files/' not in route` guard on KB-delete; added `routeKey` and `path_params` to logging for debugging.
+- `backend/build.ps1` — Changed output path to `..\infrastructure` so zips go directly to the infrastructure folder, preventing stale-zip deployment issues.
