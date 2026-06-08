@@ -38,9 +38,13 @@ BEDROCK_ROLE_ARN = os.environ.get('BEDROCK_ROLE_ARN')
 EMBEDDING_MODEL_ARN = os.environ.get('EMBEDDING_MODEL_ARN')
 CHAT_MODEL_ARN = os.environ.get('CHAT_MODEL_ARN')
 VECTOR_DIMENSION = int(os.environ.get('VECTOR_DIMENSION', 1024))
-CHUNKING_STRATEGY = os.environ.get('CHUNKING_STRATEGY', 'FIXED_SIZE')
+CHUNKING_STRATEGY = os.environ.get('CHUNKING_STRATEGY', 'SEMANTIC')
 FIXED_SIZE_MAX_TOKENS = int(os.environ.get('FIXED_SIZE_MAX_TOKENS', 256))
 FIXED_SIZE_OVERLAP_PCT = int(os.environ.get('FIXED_SIZE_OVERLAP_PCT', 10))
+PARSING_MODEL_ARN = os.environ.get('PARSING_MODEL_ARN', '')
+SEMANTIC_CHUNKING_BREAKPOINT_PCT = int(os.environ.get('SEMANTIC_CHUNKING_BREAKPOINT_PCT', 95))
+SEMANTIC_CHUNKING_BUFFER_SIZE = int(os.environ.get('SEMANTIC_CHUNKING_BUFFER_SIZE', 0))
+SEMANTIC_CHUNKING_MAX_TOKENS = int(os.environ.get('SEMANTIC_CHUNKING_MAX_TOKENS', 512))
 AWS_REGION = os.environ.get('AWS_REGION', 'us-east-1')
 
 kbs_table = dynamodb.Table(KB_TABLE_NAME) if KB_TABLE_NAME else None
@@ -166,27 +170,56 @@ def create_knowledge_base(user_id, kb_id, name):
     bedrock_kb_id = kb_info['knowledgeBaseId']
 
     doc_prefix = f"users/{user_id}/kbs/{kb_id}/"
-    data_source_response = bedrock_agent.create_data_source(
-        knowledgeBaseId=bedrock_kb_id,
-        name=f"{kb_id}-ds",
-        dataSourceConfiguration={
+
+    # Build chunking configuration based on strategy
+    if CHUNKING_STRATEGY == 'SEMANTIC':
+        chunking_config = {
+            'chunkingStrategy': 'SEMANTIC',
+            'semanticChunkingConfiguration': {
+                'breakpointPercentileThreshold': SEMANTIC_CHUNKING_BREAKPOINT_PCT,
+                'bufferSize': SEMANTIC_CHUNKING_BUFFER_SIZE,
+                'maxTokens': SEMANTIC_CHUNKING_MAX_TOKENS
+            }
+        }
+    elif CHUNKING_STRATEGY == 'FIXED_SIZE':
+        chunking_config = {
+            'chunkingStrategy': 'FIXED_SIZE',
+            'fixedSizeChunkingConfiguration': {
+                'maxTokens': FIXED_SIZE_MAX_TOKENS,
+                'overlapPercentage': FIXED_SIZE_OVERLAP_PCT
+            }
+        }
+    else:
+        chunking_config = {
+            'chunkingStrategy': CHUNKING_STRATEGY
+        }
+
+    # Build parsing configuration (FOUNDATION_MODEL or default)
+    data_source_kwargs = {
+        'knowledgeBaseId': bedrock_kb_id,
+        'name': f"{kb_id}-ds",
+        'dataSourceConfiguration': {
             'type': 'S3',
             's3Configuration': {
                 'bucketArn': f"arn:aws:s3:::{DOCUMENTS_BUCKET}",
                 'inclusionPrefixes': [doc_prefix]
             }
         },
-        vectorIngestionConfiguration={
-            'chunkingConfiguration': {
-                'chunkingStrategy': CHUNKING_STRATEGY,
-                'fixedSizeChunkingConfiguration': {
-                    'maxTokens': FIXED_SIZE_MAX_TOKENS,
-                    'overlapPercentage': FIXED_SIZE_OVERLAP_PCT
-                }
-            }
+        'vectorIngestionConfiguration': {
+            'chunkingConfiguration': chunking_config
         },
-        dataDeletionPolicy='RETAIN'
-    )
+        'dataDeletionPolicy': 'RETAIN'
+    }
+
+    if PARSING_MODEL_ARN:
+        data_source_kwargs['vectorIngestionConfiguration']['parsingConfiguration'] = {
+            'parsingStrategy': 'BEDROCK_FOUNDATION_MODEL',
+            'bedrockFoundationModelConfiguration': {
+                'modelArn': PARSING_MODEL_ARN
+            }
+        }
+
+    data_source_response = bedrock_agent.create_data_source(**data_source_kwargs)
 
     data_source_id = data_source_response['dataSource']['dataSourceId']
 

@@ -47,9 +47,9 @@ variable "s3_history_prefix" {
 }
 
 variable "chunking_strategy" {
-  description = "Chunking strategy (FIXED_SIZE recommended for S3 Vectors)"
+  description = "Chunking strategy"
   type        = string
-  default     = "FIXED_SIZE"
+  default     = "SEMANTIC"
   validation {
     condition     = contains(["DEFAULT", "FIXED_SIZE", "HIERARCHICAL", "SEMANTIC", "NONE"], var.chunking_strategy)
     error_message = "Chunking strategy must be one of: DEFAULT, FIXED_SIZE, HIERARCHICAL, SEMANTIC, NONE"
@@ -66,6 +66,30 @@ variable "fixed_size_overlap_percentage" {
   description = "Percentage of overlap between chunks for FIXED_SIZE chunking"
   type        = number
   default     = 10
+}
+
+variable "parsing_model_id" {
+  description = "Bedrock model ID for FOUNDATION_MODEL parsing strategy"
+  type        = string
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+}
+
+variable "semantic_chunking_breakpoint_percentile_threshold" {
+  description = "Breakpoint percentile threshold for SEMANTIC chunking (50-99, higher = more aggressive)"
+  type        = number
+  default     = 95
+}
+
+variable "semantic_chunking_buffer_size" {
+  description = "Buffer size for SEMANTIC chunking (0 or 1)"
+  type        = number
+  default     = 0
+}
+
+variable "semantic_chunking_max_tokens" {
+  description = "Maximum tokens per chunk for SEMANTIC chunking"
+  type        = number
+  default     = 512
 }
 
 # Cognito variables

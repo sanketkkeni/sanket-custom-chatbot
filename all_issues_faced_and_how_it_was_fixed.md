@@ -312,3 +312,42 @@ Sub-issue D: `RetrieveAndGenerate` internally calls `bedrock:InvokeModel` on **b
   - `handle_list_kbs()` — Removed stale indexedCount/failedCount refresh block
   - `handle_get_stats()` — Complete rewrite: dynamically fetches ingestion stats from Bedrock API, computes indexedCount as `scanned - failed`, returns failedCount
 - `frontend/pages/kb/[id].tsx` — Changed stats grid from `grid-cols-3` to `grid-cols-4`, added "Failed Documents" card (red when > 0)
+
+---
+
+## Issue 17: Switch to Foundation Model Parsing with Claude Haiku 4.5 and Semantic Chunking
+
+**Symptom**: Documents were parsed using Bedrock's default (built-in) parser and chunked with FIXED_SIZE strategy (512 tokens, 10% overlap). Wanted to use Claude Haiku 4.5 as the document parser and switch to SEMANTIC chunking for better contextual chunk boundaries.
+
+**Root Cause**: Two configuration gaps:
+1. **Parsing strategy**: The `create_data_source()` call in `backend/utils.py` never set `parsingConfiguration`, so Bedrock used its default parser (not a foundation model). The correct strategy name is `BEDROCK_FOUNDATION_MODEL` (not `FOUNDATION_MODEL`).
+2. **Chunking strategy**: Only `FIXED_SIZE` chunking configuration was implemented. No support for `SEMANTIC` chunking with its parameters (`breakpointPercentileThreshold`, `bufferSize`, `maxTokens`).
+
+**Fix**: Three-part fix across backend, infrastructure, and AWS resources:
+
+1. **Backend** (`backend/utils.py`):
+   - Added `PARSING_MODEL_ARN`, `SEMANTIC_CHUNKING_BREAKPOINT_PCT`, `SEMANTIC_CHUNKING_BUFFER_SIZE`, `SEMANTIC_CHUNKING_MAX_TOKENS` env vars
+   - Updated `create_knowledge_base()` to build conditional `chunkingConfiguration` based on strategy (`SEMANTIC` uses `semanticChunkingConfiguration`, `FIXED_SIZE` uses `fixedSizeChunkingConfiguration`)
+   - Added `parsingConfiguration` with `BEDROCK_FOUNDATION_MODEL` strategy and `modelArn` pointing to the Claude Haiku 4.5 inference profile
+
+2. **Infrastructure**:
+   - `infrastructure/variables.tf`: Changed `chunking_strategy` default to `"SEMANTIC"`, added `parsing_model_id`, `semantic_chunking_breakpoint_percentile_threshold`, `semantic_chunking_buffer_size`, `semantic_chunking_max_tokens` variables
+   - `infrastructure/main.tf`: Added `parsing_model_arn` local
+   - `infrastructure/lambda.tf`: Added env vars for parsing model and semantic chunking
+   - `infrastructure/iam.tf`: Added `bedrock:GetInferenceProfile` and `bedrock:InvokeModel` (on inference profile ARN + 3 US region foundation model ARNs) to the Bedrock execution role's policy
+
+3. **Existing KB update** (manual via AWS CLI):
+   - Deleted the old data source (config is immutable after creation)
+   - Created a new data source with `parsingConfiguration` (`BEDROCK_FOUNDATION_MODEL`) + `chunkingConfiguration` (`SEMANTIC`, 95/0/512)
+   - Updated DynamoDB with new `dataSourceId`
+   - Started a new ingestion job to re-process all 26 documents with the new parser and chunking
+
+**Files changed**:
+- `backend/utils.py`:
+  - Added env var reads for `PARSING_MODEL_ARN`, `SEMANTIC_CHUNKING_BREAKPOINT_PCT`, `SEMANTIC_CHUNKING_BUFFER_SIZE`, `SEMANTIC_CHUNKING_MAX_TOKENS`
+  - Updated `create_knowledge_base()` to build conditional chunking config and include `parsingConfiguration`
+- `infrastructure/variables.tf` — Changed chunking default to SEMANTIC, added 4 new variables
+- `infrastructure/main.tf` — Added `parsing_model_arn` local
+- `infrastructure/lambda.tf` — Added 5 new environment variables
+- `infrastructure/iam.tf` — Added `bedrock:GetInferenceProfile` and bedrock foundation model ARNs to execution role
+- `AGENTS.md` — Updated stack description and added configuration section

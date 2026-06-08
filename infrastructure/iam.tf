@@ -363,8 +363,8 @@ resource "aws_iam_role_policy" "bedrock_s3_vectors" {
   })
 }
 
-resource "aws_iam_role_policy" "bedrock_invoke_embedding" {
-  name = "${var.project_name}-bedrock-invoke-embedding"
+resource "aws_iam_role_policy" "bedrock_invoke_models" {
+  name = "${var.project_name}-bedrock-invoke-models"
   role = aws_iam_role.bedrock_execution.name
 
   policy = jsonencode({
@@ -375,6 +375,23 @@ resource "aws_iam_role_policy" "bedrock_invoke_embedding" {
         Action = "bedrock:InvokeModel"
         Effect = "Allow"
         Resource = local.embedding_model_arn
+      },
+      {
+        Sid    = "GetInferenceProfile"
+        Action = "bedrock:GetInferenceProfile"
+        Effect = "Allow"
+        Resource = local.parsing_model_arn
+      },
+      {
+        Sid    = "InvokeParsingModel"
+        Action = "bedrock:InvokeModel"
+        Effect = "Allow"
+        Resource = [
+          local.parsing_model_arn,
+          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+          "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+        ]
       }
     ]
   })

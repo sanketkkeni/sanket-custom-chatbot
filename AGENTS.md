@@ -15,7 +15,7 @@
 - Database: DynamoDB (PAY_PER_REQUEST)
 - Storage: S3 (documents, conversation MD files)
 - Vector: S3 Vectors (shared bucket, unique index per KB)
-- AI: Bedrock Knowledge Bases, Claude Haiku 4.5 via inference profile (RetrieveAndGenerate), Titan Text Embeddings v2
+- AI: Bedrock Knowledge Bases, Claude Haiku 4.5 via inference profile (RetrieveAndGenerate + document parsing), Titan Text Embeddings v2
 
 ### Naming
 - Terraform project_name: "bedrock-chat"
@@ -58,6 +58,12 @@ project/
 ├── README.md
 └── PLAN.md
 ```
+
+### Configuration
+- Parsing: `BEDROCK_FOUNDATION_MODEL` using `us.anthropic.claude-haiku-4-5-20251001-v1:0` inference profile
+- Chunking: `SEMANTIC` (breakpointPercentileThreshold=95, bufferSize=0, maxTokens=512)
+- Both parsing and chunking are immutable after data source creation — must delete/recreate data source to change
+- `parsingConfiguration` requires `bedrock:GetInferenceProfile` + `bedrock:InvokeModel` on both the inference profile ARN AND underlying foundation model ARNs (all 3 US regions) for the Bedrock execution role
 
 ### Commands
 - Terraform: `cd infrastructure; terraform init; terraform plan -out plan.tfplan; terraform apply plan.tfplan`

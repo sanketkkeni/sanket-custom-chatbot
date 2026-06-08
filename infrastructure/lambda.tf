@@ -20,10 +20,14 @@ resource "aws_lambda_function" "kb_api" {
       EMBEDDING_MODEL_ARN    = local.embedding_model_arn
       CHAT_MODEL_ARN         = local.chat_model_arn
       VECTOR_DIMENSION       = tostring(var.vector_dimension)
-      CHUNKING_STRATEGY      = var.chunking_strategy
-      FIXED_SIZE_MAX_TOKENS  = tostring(var.fixed_size_max_tokens)
-      FIXED_SIZE_OVERLAP_PCT = tostring(var.fixed_size_overlap_percentage)
-      LOG_LEVEL              = "INFO"
+      CHUNKING_STRATEGY                      = var.chunking_strategy
+      FIXED_SIZE_MAX_TOKENS                  = tostring(var.fixed_size_max_tokens)
+      FIXED_SIZE_OVERLAP_PCT                 = tostring(var.fixed_size_overlap_percentage)
+      PARSING_MODEL_ARN                      = local.parsing_model_arn
+      SEMANTIC_CHUNKING_BREAKPOINT_PCT       = tostring(var.semantic_chunking_breakpoint_percentile_threshold)
+      SEMANTIC_CHUNKING_BUFFER_SIZE          = tostring(var.semantic_chunking_buffer_size)
+      SEMANTIC_CHUNKING_MAX_TOKENS           = tostring(var.semantic_chunking_max_tokens)
+      LOG_LEVEL                              = "INFO"
     }
   }
 
