@@ -6,6 +6,7 @@ from datetime import datetime
 import boto3
 import time
 import uuid
+import re
 import logging
 from boto3.dynamodb.conditions import Key
 
@@ -120,6 +121,15 @@ def generate_agent_id():
 def generate_conversation_id():
     return f"conv-{uuid.uuid4().hex[:12]}"
 
+def sanitize_kb_name(name):
+    sanitized = name.encode('ascii', 'ignore').decode('ascii')
+    sanitized = sanitized.lower()
+    sanitized = re.sub(r'[^a-z0-9-]', '-', sanitized)
+    sanitized = re.sub(r'-+', '-', sanitized)
+    sanitized = sanitized.strip('-')
+    sanitized = sanitized[:80]
+    return sanitized or 'untitled'
+
 def get_account_id():
     return sts.get_caller_identity()['Account']
 
@@ -143,8 +153,11 @@ def create_knowledge_base(user_id, kb_id, name):
 
     index_arn = f"arn:aws:s3vectors:{AWS_REGION}:{account_id}:bucket/{VECTOR_BUCKET_NAME}/index/{index_name}"
 
+    uuid_suffix = kb_id[3:]
+    bedrock_kb_name = f"kb-{sanitize_kb_name(name)}-{uuid_suffix}"
+
     response = bedrock_agent.create_knowledge_base(
-        name=kb_id,
+        name=bedrock_kb_name,
         roleArn=BEDROCK_ROLE_ARN,
         knowledgeBaseConfiguration={
             'type': 'VECTOR',
@@ -197,7 +210,7 @@ def create_knowledge_base(user_id, kb_id, name):
     # Build parsing configuration (FOUNDATION_MODEL or default)
     data_source_kwargs = {
         'knowledgeBaseId': bedrock_kb_id,
-        'name': f"{kb_id}-ds",
+        'name': f"{bedrock_kb_name}-ds",
         'dataSourceConfiguration': {
             'type': 'S3',
             's3Configuration': {
