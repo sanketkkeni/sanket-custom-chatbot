@@ -50,6 +50,10 @@ export async function getUploadUrl(kbId: string, filename: string, contentType: 
   return apiRequest('POST', `/kbs/${kbId}/upload`, { filename, contentType });
 }
 
+export async function getUploadUrls(kbId: string, files: {filename: string, contentType: string}[]): Promise<any> {
+  return apiRequest('POST', `/kbs/${kbId}/upload`, { files });
+}
+
 export async function listFiles(kbId: string): Promise<any> {
   return apiRequest('GET', `/kbs/${kbId}/files`);
 }

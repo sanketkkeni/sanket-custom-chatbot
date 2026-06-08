@@ -244,21 +244,71 @@ Sub-issue D: `RetrieveAndGenerate` internally calls `bedrock:InvokeModel` on **b
 
 ---
 
-## Summary of Root Causes
+---
+## Issue 15: File Upload Only Supports Single File at a Time
 
-| Issue | Category | Root Cause |
-|-------|----------|------------|
-| CORS 401 | API Gateway config | `payload_format_version` defaulted to `1.0` but code expects `2.0` |
-| S3 Vectors param | boto3 API | Wrong parameter name `vectorBucket` instead of `vectorBucketName` |
-| Decimal serialization | DynamoDB + JSON | DynamoDB returns `Decimal` objects, `json.dumps` can't serialize them |
-| Zip not deployed | Terraform Cloud | Terraform didn't detect local zip changes |
-| Module not found in KB/chat pages | Frontend imports | Wrong relative import depth — `../` only goes up one level but files are two levels deep |
-| Upload presigned URL error | Backend Lambda | `ExpiresIn` passed inside `Params` to `generate_presigned_url` but it's a kwarg of the function, not an S3 API param |
-| KB status stuck on CREATING | Backend Lambda | `datetime` not imported in `utils.py` — refresh functions silently failed |
-| Chat AccessDenied on Retrieve | IAM policy | `bedrock:Retrieve` missing from Lambda IAM policy — `RetrieveAndGenerate` requires it internally |
-| Vercel build fails on size prop | Frontend build | `size="sm"` used on native `<button>` — not a valid HTML attribute, TypeScript rejects it |
-| Nova Micro not supported for RetrieveAndGenerate | Model config | `amazon.nova-micro-v1:0` doesn't support `RetrieveAndGenerate` API — returned misleading error text |
-| KB deletion stuck on vector cleanup | Backend Lambda + AWS API | `dataDeletionPolicy='DELETE'` caused vector cleanup conflict — changed to `RETAIN` |
-| Chat fails after model switch | Anthropic FTU + IAM | FTU form not submitted for this account; Lambda IAM role missing `aws-marketplace:Subscribe` and `aws-marketplace:ViewSubscriptions` |
-| Claude 3 Haiku legacy error | Model deprecation + inference profile | `anthropic.claude-3-haiku-20240307-v1:0` marked LEGACY; switched to inference profile `us.anthropic.claude-haiku-4-5-20251001-v1:0`; needed `bedrock:GetInferenceProfile` + `InvokeModel` on both inference profile ARN AND underlying foundation model ARNs in all 3 US regions (us-east-1, us-east-2, us-west-2) |
-| Greetings return refusal | Backend Lambda + prompt template | `generationConfiguration` only set when agent instructions existed; `{context}` placeholder should be `$search_results$` per API requirement |
+**Symptom**: The upload component and KB detail page only allowed selecting and uploading one file at a time. Users had to upload files individually, which was tedious for batch document ingestion.
+
+**Root Cause**: Two issues:
+1. **Backend** (`backend/kb_api.py`): The `handle_upload_file()` function only accepted a single `filename` + `contentType` pair and returned a single presigned URL per request. There was no support for batch presigned URL generation.
+2. **Frontend** (`frontend/components/FileUpload.tsx` and `frontend/pages/kb/[id].tsx`): The `<input type="file">` elements lacked the `multiple` attribute. Both change handlers only processed `e.target.files[0]` (the first file), ignoring any additional files. Each upload required a separate API call to the backend.
+
+**Fix**: Three-part fix:
+
+1. **Backend** (`backend/kb_api.py`): Updated `handle_upload_file()` to support both the original single-file format (backward compatible) and a new batch format accepting a `files` array. Each entry in the array has `filename` and `contentType`. The function generates presigned URLs for all files and returns them in a `presignedUrls` array.
+
+```python
+# New batch format accepted:
+# POST /kbs/{id}/upload { "files": [{ "filename": "a.pdf", "contentType": "application/pdf" }, ...] }
+# Returns: { "presignedUrls": [{ "filename": "a.pdf", "presignedUrl": "...", "key": "..." }, ...] }
+```
+
+2. **Frontend API** (`frontend/lib/api.ts`): Added `getUploadUrls(kbId, files[])` function that sends the batch request to the backend.
+
+3. **Frontend components** (`FileUpload.tsx` and `kb/[id].tsx`): Added `multiple` attribute to file inputs. Changed change handlers to iterate over all selected files. Uses `Promise.allSettled` (in `FileUpload.tsx`) for parallel uploads with per-file error tracking. Shows individual success/error messages per file.
+
+**Files changed**:
+- `backend/kb_api.py` — `handle_upload_file()` rewritten to support batch `files` array
+- `frontend/lib/api.ts` — Added `getUploadUrls()` batch function
+- `frontend/components/FileUpload.tsx` — Added `multiple`, parallel upload with `Promise.allSettled`, per-file error display
+- `frontend/pages/kb/[id].tsx` — Added `multiple`, batch upload via `getUploadUrls`, `Array.from()` for file list
+
+---
+
+---
+
+## Issue 16: Indexed Count Shows 0 After Successful Sync
+
+**Symptom**: KB detail page shows "Last sync: Completed" and "Files: 26", but "Indexed Documents" shows 0 even though Bedrock successfully indexed documents.
+
+**Root Cause**: Three bugs found and fixed iteratively:
+
+1. **Bedrock statistics key name mismatch**: The `get_ingestion_status()` function in `backend/utils.py` accessed Bedrock ingestion job statistics with wrong key names. Bedrock returns `numberOfDocumentsScanned`, `numberOfNewDocumentsIndexed`, etc. (camelCase with capital **O** in "Of"), but the code used `numberofDocumentsScanned`, `numberofNewDocumentsIndexed` (lowercase **o**). Since the keys didn't match, `.get()` always returned 0.
+
+2. **Wrong metric for re-syncs**: Even after fixing the key names, `numberOfNewDocumentsIndexed` was 0 on re-syncs because all documents were already indexed in the first sync. Bedrock only counts documents as "new" if they've never been indexed before — on re-syncs, previously indexed documents don't appear here. The correct metric for total successfully indexed documents is `numberOfDocumentsScanned - numberOfDocumentsFailed`.
+
+3. **Cached state approach was fragile**: Initially attempted to store `indexedCount`/`failedCount` in DynamoDB with `lastIndexedJobId` guards to prevent double-counting. This approach had race conditions (concurrent Lambda invocations on page load) and stale data issues (pre-existing KBs created before the feature was deployed had no tracking fields).
+
+**Fix**: Three fixes in sequence:
+
+1. **Fixed Bedrock statistics key names** in `get_ingestion_status()`: Changed `numberof` → `numberOf` (capital O) in all `.get()` calls.
+
+2. **Scrapped DynamoDB caching, switched to dynamic fetch**: Removed all `indexedCount`/`failedCount`/`lastIndexedJobId` tracking from the codebase. Instead, `handle_get_stats()` now directly calls `get_ingestion_status()` on every page load when `lastSyncStatus == 'COMPLETE'` and computes:
+   - `indexedCount = numberOfDocumentsScanned - numberOfDocumentsFailed`
+   - `failedCount = numberOfDocumentsFailed`
+   
+   This is stateless, always correct, and handles pre-existing KBs without any migration.
+
+3. **Added "Failed Documents" stats card**: Frontend KB detail page got a 4th column showing failed document count (highlighted in red when > 0).
+
+**Files changed**:
+- `backend/utils.py`:
+  - `get_ingestion_status()` — Fixed Bedrock statistics key names: `numberof` → `numberOf`
+  - `refresh_kb_sync_status()` — Reverted to simple IN_PROGRESS fix (removed all indexedCount/failedCount/lastIndexedJobId logic)
+- `backend/kb_api.py`:
+  - `handle_create_kb()` — Removed `indexedCount`, `failedCount`, `lastIndexedJobId` fields (never needed)
+  - `handle_get_sync_status()` — Reverted to simple status update (removed indexedCount increment logic)
+  - `handle_get_kb()` — Removed stale indexedCount/failedCount refresh block
+  - `handle_list_kbs()` — Removed stale indexedCount/failedCount refresh block
+  - `handle_get_stats()` — Complete rewrite: dynamically fetches ingestion stats from Bedrock API, computes indexedCount as `scanned - failed`, returns failedCount
+- `frontend/pages/kb/[id].tsx` — Changed stats grid from `grid-cols-3` to `grid-cols-4`, added "Failed Documents" card (red when > 0)

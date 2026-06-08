@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Brain, ArrowLeft, Loader2, Upload, FileText, Trash2, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { getKB, listFiles, deleteFile, startSync, getSyncStatus, getKBStats, getUploadUrl, uploadToS3 } from '../../lib/api';
+import { getKB, listFiles, deleteFile, startSync, getSyncStatus, getKBStats, getUploadUrls, uploadToS3 } from '../../lib/api';
 
 export default function KBDetail() {
   const router = useRouter();
@@ -45,13 +45,19 @@ export default function KBDetail() {
   }, [id, user]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !id) return;
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0 || !id) return;
+    const selectedFiles = Array.from(fileList);
     setUploading(true);
     setError('');
     try {
-      const { presignedUrl } = await getUploadUrl(id as string, file.name, file.type);
-      await uploadToS3(presignedUrl, file);
+      const filesPayload = selectedFiles.map(f => ({ filename: f.name, contentType: f.type }));
+      const { presignedUrls } = await getUploadUrls(id as string, filesPayload);
+      await Promise.all(
+        presignedUrls.map((item: { filename: string; presignedUrl: string }) =>
+          uploadToS3(item.presignedUrl, selectedFiles.find(f => f.name === item.filename)!)
+        )
+      );
       loadKB();
     } catch (err: any) {
       setError(err.message);
@@ -171,7 +177,7 @@ export default function KBDetail() {
         )}
 
         {stats && (
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-4 gap-4 mb-8">
             <div className="glass-dark p-4 rounded-xl text-center">
               <div className="text-2xl font-bold text-primary-400">{stats.totalFiles}</div>
               <div className="text-sm text-gray-400">Total Files</div>
@@ -179,6 +185,10 @@ export default function KBDetail() {
             <div className="glass-dark p-4 rounded-xl text-center">
               <div className="text-2xl font-bold text-accent-400">{stats.indexedCount ?? 0}</div>
               <div className="text-sm text-gray-400">Indexed Documents</div>
+            </div>
+            <div className="glass-dark p-4 rounded-xl text-center">
+              <div className={`text-2xl font-bold ${(stats.failedCount ?? 0) > 0 ? 'text-red-400' : 'text-gray-400'}`}>{stats.failedCount ?? 0}</div>
+              <div className="text-sm text-gray-400">Failed Documents</div>
             </div>
             <div className="glass-dark p-4 rounded-xl text-center">
               <div className="text-2xl font-bold text-purple-400">{(stats.totalSizeBytes / 1024 / 1024).toFixed(1)}MB</div>
@@ -194,7 +204,7 @@ export default function KBDetail() {
             <Upload className="h-10 w-10 text-gray-400 mb-4" />
             <span className="text-gray-400 mb-2">{uploading ? 'Uploading...' : 'Click to upload or drag and drop'}</span>
             <span className="text-xs text-gray-500">PDF, TXT, MD, HTML, DOCX, CSV, XLSX (max 50MB)</span>
-            <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
+            <input type="file" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
           </label>
         </div>
 

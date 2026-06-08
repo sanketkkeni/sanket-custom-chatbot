@@ -236,11 +236,11 @@ def get_ingestion_status(bedrock_kb_id, data_source_id, job_id):
         'status': job['status'],
         'error': job.get('error', ''),
         'statistics': {
-            'numberofDocumentsScanned': job.get('statistics', {}).get('numberofDocumentsScanned', 0),
-            'numberofNewDocumentsIndexed': job.get('statistics', {}).get('numberofNewDocumentsIndexed', 0),
-            'numberofModifiedDocumentsIndexed': job.get('statistics', {}).get('numberofModifiedDocumentsIndexed', 0),
-            'numberofDocumentsDeleted': job.get('statistics', {}).get('numberofDocumentsDeleted', 0),
-            'numberofDocumentsFailed': job.get('statistics', {}).get('numberofDocumentsFailed', 0)
+            'numberOfDocumentsScanned': job.get('statistics', {}).get('numberOfDocumentsScanned', 0),
+            'numberOfNewDocumentsIndexed': job.get('statistics', {}).get('numberOfNewDocumentsIndexed', 0),
+            'numberOfModifiedDocumentsIndexed': job.get('statistics', {}).get('numberOfModifiedDocumentsIndexed', 0),
+            'numberOfDocumentsDeleted': job.get('statistics', {}).get('numberOfDocumentsDeleted', 0),
+            'numberOfDocumentsFailed': job.get('statistics', {}).get('numberOfDocumentsFailed', 0)
         }
     }
 
@@ -301,20 +301,13 @@ def refresh_kb_sync_status(user_id, kb_id, bedrock_kb_id, data_source_id, job_id
     try:
         status = get_ingestion_status(bedrock_kb_id, data_source_id, job_id)
         if status['status'] in ('COMPLETE', 'FAILED', 'STOPPED'):
-            update_expr = 'SET lastSyncStatus = :status, updatedAt = :now'
-            expr_attrs = {
-                ':status': status['status'],
-                ':now': datetime.utcnow().isoformat()
-            }
-            if status['status'] == 'COMPLETE' and status.get('statistics'):
-                new_count = status['statistics'].get('numberofNewDocumentsIndexed', 0)
-                if new_count > 0:
-                    update_expr += ', indexedCount = indexedCount + :dc'
-                    expr_attrs[':dc'] = new_count
             kbs_table.update_item(
                 Key={'userId': user_id, 'kbId': kb_id},
-                UpdateExpression=update_expr,
-                ExpressionAttributeValues=expr_attrs
+                UpdateExpression='SET lastSyncStatus = :status, updatedAt = :now',
+                ExpressionAttributeValues={
+                    ':status': status['status'],
+                    ':now': datetime.utcnow().isoformat()
+                }
             )
             return status['status']
         return status['status']

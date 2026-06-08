@@ -110,7 +110,6 @@ def handle_create_kb(user_id, body):
             's3Prefix': doc_prefix,
             'vectorIndexArn': index_arn,
             'documentCount': 0,
-            'indexedCount': 0,
             'lastSyncStatus': 'NONE',
             'lastSyncError': '',
             'createdAt': datetime.utcnow().isoformat(),
@@ -220,16 +219,34 @@ def handle_upload_file(user_id, kb_id, body):
     if not response.get('Item'):
         return create_response(404, {'message': 'KB not found'})
 
-    filename = body.get('filename', '')
-    content_type = body.get('contentType', 'application/octet-stream')
-    if not filename:
-        return create_response(400, {'message': 'filename is required'})
-
     doc_prefix = response['Item'].get('s3Prefix', f"users/{user_id}/kbs/{kb_id}/")
-    key = f"{doc_prefix}{filename}"
 
-    presigned_url = get_presigned_url(DOCUMENTS_BUCKET, key, content_type)
-    return create_response(200, {'presignedUrl': presigned_url, 'key': key})
+    # Backward compatible single file upload
+    if 'filename' in body:
+        filename = body.get('filename', '')
+        content_type = body.get('contentType', 'application/octet-stream')
+        if not filename:
+            return create_response(400, {'message': 'filename is required'})
+        key = f"{doc_prefix}{filename}"
+        presigned_url = get_presigned_url(DOCUMENTS_BUCKET, key, content_type)
+        return create_response(200, {'presignedUrl': presigned_url, 'key': key})
+
+    # Batch upload
+    files = body.get('files', [])
+    if not files:
+        return create_response(400, {'message': 'filename or files is required'})
+
+    results = []
+    for f in files:
+        filename = f.get('filename', '')
+        content_type = f.get('contentType', 'application/octet-stream')
+        if not filename:
+            continue
+        key = f"{doc_prefix}{filename}"
+        presigned_url = get_presigned_url(DOCUMENTS_BUCKET, key, content_type)
+        results.append({'filename': filename, 'presignedUrl': presigned_url, 'key': key})
+
+    return create_response(200, {'presignedUrls': results})
 
 
 def handle_list_files(user_id, kb_id):
@@ -308,12 +325,6 @@ def handle_get_sync_status(user_id, kb_id):
                 ':err': status.get('error', ''),
                 ':now': datetime.utcnow().isoformat()
             }
-            if status['status'] == 'COMPLETE' and status.get('statistics'):
-                new_count = status['statistics'].get('numberofNewDocumentsIndexed', 0)
-                if new_count > 0:
-                    update_expr += ', indexedCount = indexedCount + :dc'
-                    expr_attrs[':dc'] = new_count
-
             kbs_table.update_item(
                 Key={'userId': user_id, 'kbId': kb_id},
                 UpdateExpression=update_expr,
@@ -334,6 +345,20 @@ def handle_get_stats(user_id, kb_id):
     doc_prefix = kb.get('s3Prefix', f"users/{user_id}/kbs/{kb_id}/")
     files = list_s3_files(DOCUMENTS_BUCKET, doc_prefix)
 
+    # Dynamically fetch ingestion stats from last COMPLETE sync job
+    indexed_count = 0
+    failed_count = 0
+    last_sync_status = kb.get('lastSyncStatus', 'NONE')
+    if last_sync_status == 'COMPLETE' and kb.get('bedrockKbId') and kb.get('dataSourceId') and kb.get('lastSyncJobId'):
+        try:
+            ingestion = get_ingestion_status(kb['bedrockKbId'], kb['dataSourceId'], kb['lastSyncJobId'])
+            stats = ingestion.get('statistics', {})
+            scanned = stats.get('numberOfDocumentsScanned', 0)
+            failed_count = stats.get('numberOfDocumentsFailed', 0)
+            indexed_count = max(0, scanned - failed_count)
+        except Exception as e:
+            logger.warning(f"Failed to fetch ingestion stats: {str(e)}")
+
     total_size = sum(f['size'] for f in files)
     supported_types = ['.pdf', '.txt', '.md', '.html', '.csv', '.doc', '.docx', '.xls', '.xlsx']
     by_type = {}
@@ -346,8 +371,9 @@ def handle_get_stats(user_id, kb_id):
         'name': kb.get('name', ''),
         'status': kb.get('status', ''),
         'documentCount': kb.get('documentCount', 0),
-        'indexedCount': kb.get('indexedCount', 0),
-        'lastSyncStatus': kb.get('lastSyncStatus', 'NONE'),
+        'indexedCount': indexed_count,
+        'failedCount': failed_count,
+        'lastSyncStatus': last_sync_status,
         'lastSyncError': kb.get('lastSyncError', ''),
         'totalFiles': len(files),
         'totalSizeBytes': total_size,

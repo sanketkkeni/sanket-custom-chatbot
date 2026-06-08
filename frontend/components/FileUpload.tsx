@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import { Upload, Loader2, AlertCircle } from 'lucide-react';
-import { getUploadUrl, uploadToS3 } from '../lib/api';
+import { Upload, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { getUploadUrls, uploadToS3 } from '../lib/api';
 
 interface FileUploadProps {
   kbId: string;
@@ -22,26 +22,50 @@ const ALLOWED_TYPES = [
 
 export default function FileUpload({ kbId, onUploadComplete }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
+  const [successCount, setSuccessCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = async (file: File) => {
-    setError('');
+  const handleFiles = async (files: FileList) => {
+    setErrors([]);
+    setSuccessCount(0);
 
-    if (file.size > MAX_FILE_SIZE) {
-      setError('File is too large. Maximum size is 50MB.');
-      return;
-    }
+    const validFiles = Array.from(files).filter(f => {
+      if (f.size > MAX_FILE_SIZE) {
+        setErrors(prev => [...prev, `${f.name}: File is too large (max 50MB)`]);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
 
     setUploading(true);
     try {
-      const { presignedUrl } = await getUploadUrl(kbId, file.name, file.type);
-      await uploadToS3(presignedUrl, file);
-      onUploadComplete();
+      const filesPayload = validFiles.map(f => ({ filename: f.name, contentType: f.type }));
+      const { presignedUrls } = await getUploadUrls(kbId, filesPayload);
+
+      const results = await Promise.allSettled(
+        presignedUrls.map((item: { filename: string; presignedUrl: string }) =>
+          uploadToS3(item.presignedUrl, validFiles.find(f => f.name === item.filename)!)
+        )
+      );
+
+      let success = 0;
+      const errs: string[] = [];
+      results.forEach((r, i) => {
+        if (r.status === 'fulfilled') success++;
+        else errs.push(`${validFiles[i].name}: ${r.reason?.message || 'Upload failed'}`);
+      });
+
+      setSuccessCount(success);
+      if (errs.length > 0) setErrors(errs);
+      if (success > 0) onUploadComplete();
     } catch (err: any) {
-      setError(err.message || 'Upload failed');
+      setErrors([err.message || 'Upload failed']);
     } finally {
       setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
@@ -49,23 +73,33 @@ export default function FileUpload({ kbId, onUploadComplete }: FileUploadProps) 
     <div>
       <label className="flex flex-col items-center justify-center border-2 border-dashed border-dark-500 rounded-xl p-8 cursor-pointer hover:border-primary-500 transition-colors">
         <Upload className="h-10 w-10 text-gray-400 mb-4" />
-        <span className="text-gray-400 mb-2">{uploading ? 'Uploading...' : 'Click to upload or drag and drop'}</span>
-        <span className="text-xs text-gray-500">PDF, TXT, MD, HTML, DOCX, CSV, XLSX (max 50MB)</span>
+        <span className="text-gray-400 mb-2">
+          {uploading ? `Uploading ${successCount} file${successCount !== 1 ? 's' : ''}...` : 'Click to upload or drag and drop'}
+        </span>
+        <span className="text-xs text-gray-500">PDF, TXT, MD, HTML, DOCX, CSV, XLSX (max 50MB each)</span>
         <input
           ref={inputRef}
           type="file"
+          multiple
           className="hidden"
           disabled={uploading}
           onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFile(file);
-            if (inputRef.current) inputRef.current.value = '';
+            if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
           }}
         />
       </label>
-      {error && (
-        <div className="mt-3 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm flex items-center gap-2">
-          <AlertCircle className="h-4 w-4" />{error}
+      {successCount > 0 && (
+        <div className="mt-3 p-3 bg-green-500/20 border border-green-500/50 rounded-lg text-green-400 text-sm flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />{successCount} file{successCount !== 1 ? 's' : ''} uploaded successfully
+        </div>
+      )}
+      {errors.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {errors.map((err, i) => (
+            <div key={i} className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />{err}
+            </div>
+          ))}
         </div>
       )}
     </div>

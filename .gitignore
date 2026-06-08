@@ -44,4 +44,7 @@ frontend/test-results/
 deployed_kb/
 list_kbs_test.json
 output.txt
+key.json
+payload.json
+response.json
 
