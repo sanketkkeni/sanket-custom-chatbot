@@ -351,3 +351,32 @@ Sub-issue D: `RetrieveAndGenerate` internally calls `bedrock:InvokeModel` on **b
 - `infrastructure/lambda.tf` — Added 5 new environment variables
 - `infrastructure/iam.tf` — Added `bedrock:GetInferenceProfile` and bedrock foundation model ARNs to execution role
 - `AGENTS.md` — Updated stack description and added configuration section
+
+## Issue 18: Delete File Actually Deletes Entire KB
+
+**Symptom**: Clicking "delete file" on a PNG in the Manage KB section removed the entire KB from the UI (DynamoDB record + S3 files deleted), but left the Bedrock KB orphaned.
+
+**Root Cause**: Route ordering bug in `backend/kb_api.py`. The generic `DELETE /kbs/{id}` handler was defined BEFORE the specific `DELETE /kbs/{id}/files/{file}` handler. API Gateway routes both requests to the same Lambda (same `/kbs` route), so the Lambda routes internally. The generic handler used `route.startswith('/kbs/')`, which matches `/kbs/{id}/files/{file}` — it caught the file-delete request and called `handle_delete_kb()` instead.
+
+```python
+# BAD ORDER: generic catch-all matched first
+if method == 'DELETE' and route.startswith('/kbs/'):          # matches EVERYTHING under /kbs/
+    return handle_delete_kb(user_id, path_params['id'])       # oops, deleted whole KB
+
+if method == 'DELETE' and '/files/' in route:                  # never reached
+    return handle_delete_file(user_id, kb_id, file_key)
+```
+
+**Fix**: Moved the specific file-delete handler BEFORE the generic KB-delete handler. The specific route is now checked first; if it doesn't match, execution falls through to the generic KB delete.
+
+```python
+# GOOD ORDER: specific route checked first
+if method == 'DELETE' and '/files/' in route:                  # checked first
+    return handle_delete_file(user_id, kb_id, file_key)
+
+if method == 'DELETE' and route.startswith('/kbs/'):           # only if /files/ not in route
+    return handle_delete_kb(user_id, path_params['id'])
+```
+
+**Files changed**:
+- `backend/kb_api.py` — Reordered DELETE handlers: file-delete above KB-delete.

@@ -46,6 +46,12 @@ def lambda_handler(event, context):
         if method == 'GET' and route.startswith('/kbs/') and not any(x in route for x in ['/files', '/sync', '/stats', '/upload']):
             return handle_get_kb(user_id, path_params['id'])
 
+        # DELETE /kbs/{id}/files/{file} - Delete file (MUST be before generic DELETE /kbs/{id})
+        if method == 'DELETE' and '/files/' in route:
+            kb_id = path_params['id']
+            file_key = path_params.get('file', '')
+            return handle_delete_file(user_id, kb_id, file_key)
+
         # DELETE /kbs/{id} - Delete KB
         if method == 'DELETE' and route.startswith('/kbs/'):
             return handle_delete_kb(user_id, path_params['id'])
@@ -57,12 +63,6 @@ def lambda_handler(event, context):
         # GET /kbs/{id}/files - List files
         if method == 'GET' and route.endswith('/files'):
             return handle_list_files(user_id, path_params['id'])
-
-        # DELETE /kbs/{id}/files/{file} - Delete file
-        if method == 'DELETE' and '/files/' in route:
-            kb_id = path_params['id']
-            file_key = path_params.get('file', '')
-            return handle_delete_file(user_id, kb_id, file_key)
 
         # POST /kbs/{id}/sync - Start ingestion
         if method == 'POST' and route.endswith('/sync'):
