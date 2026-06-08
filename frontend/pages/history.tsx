@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Brain, Search, Trash2, MessageSquare, Clock, ArrowLeft, Loader2, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { listConversations, getConversation, deleteConversation } from '../lib/api';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 
 export default function History() {
   const router = useRouter();
@@ -139,9 +140,7 @@ export default function History() {
               {new Date(selectedConv.createdAt).toLocaleString()} &bull; {selectedConv.messageCount} messages
             </p>
             <div className="glass-dark rounded-2xl p-6">
-              <div className="prose prose-invert max-w-none text-sm whitespace-pre-wrap font-mono text-gray-300 leading-relaxed">
-                {selectedContent}
-              </div>
+              <MarkdownRenderer content={selectedContent} />
             </div>
           </div>
         ) : (

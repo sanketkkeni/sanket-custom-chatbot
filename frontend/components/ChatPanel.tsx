@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, User, Bot, ExternalLink } from 'lucide-react';
 import { sendChat } from '../lib/api';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface Source {
   uri: string;
@@ -75,7 +76,7 @@ export default function ChatPanel({ kbId, kbName }: ChatPanelProps) {
               {msg.role === 'user' ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5 text-primary-400" />}
             </div>
             <div className={`max-w-[80%] ${msg.role === 'user' ? 'bg-primary-600/20 border border-primary-500/30' : 'bg-dark-700 border border-dark-500'} rounded-2xl p-4`}>
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              <MarkdownRenderer content={msg.content} />
               {msg.sources && msg.sources.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-dark-500">
                   <p className="text-xs text-gray-500 mb-2">Sources ({msg.sources.length}):</p>
