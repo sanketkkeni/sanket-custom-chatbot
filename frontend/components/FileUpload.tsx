@@ -19,6 +19,8 @@ const ALLOWED_TYPES = [
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ];
+const ALLOWED_EXTENSIONS = ['pdf', 'txt', 'md', 'html', 'htm', 'csv', 'doc', 'docx', 'xls', 'xlsx'];
+const ACCEPT_STRING = '.pdf,.txt,.md,.html,.htm,.csv,.doc,.docx,.xls,.xlsx';
 
 export default function FileUpload({ kbId, onUploadComplete }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
@@ -31,8 +33,15 @@ export default function FileUpload({ kbId, onUploadComplete }: FileUploadProps) 
     setSuccessCount(0);
 
     const validFiles = Array.from(files).filter(f => {
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      const isAllowedType = ALLOWED_TYPES.includes(f.type);
+      const isAllowedExt = ALLOWED_EXTENSIONS.includes(ext);
       if (f.size > MAX_FILE_SIZE) {
         setErrors(prev => [...prev, `${f.name}: File is too large (max 50MB)`]);
+        return false;
+      }
+      if (!isAllowedType && !isAllowedExt) {
+        setErrors(prev => [...prev, `${f.name}: ${ext.toUpperCase()} files are not supported. Allowed: PDF, TXT, MD, HTML, CSV, DOC, DOCX, XLS, XLSX`]);
         return false;
       }
       return true;
@@ -82,6 +91,7 @@ export default function FileUpload({ kbId, onUploadComplete }: FileUploadProps) 
           type="file"
           multiple
           className="hidden"
+          accept={ACCEPT_STRING}
           disabled={uploading}
           onChange={(e) => {
             if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
