@@ -1,0 +1,315 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture" id="arch">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="900">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="Sanket Custom Chatbot — System Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="10" width="560" height="40"/>
+        </mxCell>
+
+        <!-- ===== BROWSER ===== -->
+        <mxCell id="browser_box" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=1 1;fillColor=#E8F4FD;strokeColor=#4A90D9;fontSize=14;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="20" y="70" width="260" height="160"/>
+        </mxCell>
+        <mxCell id="browser_label" value="Browser" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="75" width="180" height="25"/>
+        </mxCell>
+        <mxCell id="browser_nextjs" value="Next.js SPA&#10;(Next 14 + React 18)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4A90D9;" vertex="1" parent="1">
+          <mxGeometry x="40" y="105" width="100" height="50"/>
+        </mxCell>
+        <mxCell id="browser_cognito" value="Cognito SDK&#10;(auth lib)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4A90D9;" vertex="1" parent="1">
+          <mxGeometry x="160" y="105" width="100" height="50"/>
+        </mxCell>
+
+        <!-- ===== VERCEL ===== -->
+        <mxCell id="vercel_box" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=1 1;fillColor=#F0E6FF;strokeColor=#7B2CBF;fontSize=14;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="320" y="70" width="200" height="160"/>
+        </mxCell>
+        <mxCell id="vercel_label" value="Vercel (CDN + SSR)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="75" width="160" height="25"/>
+        </mxCell>
+        <mxCell id="vercel_next" value="Next.js 14 SSR&#10;Pages Router" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7B2CBF;" vertex="1" parent="1">
+          <mxGeometry x="350" y="110" width="140" height="45"/>
+        </mxCell>
+
+        <!-- ===== AWS ===== -->
+        <mxCell id="aws_box" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=1 1;fillColor=#FFF3E0;strokeColor=#E67E22;fontSize=14;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="560" y="60" width="620" height="820"/>
+        </mxCell>
+        <mxCell id="aws_label" value="AWS Cloud (us-east-1)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="65" width="300" height="25"/>
+        </mxCell>
+
+        <!-- Cognito -->
+        <mxCell id="cognito_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#E67E22;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="580" y="100" width="240" height="110"/>
+        </mxCell>
+        <mxCell id="cognito_label" value="Cognito User Pool" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="105" width="240" height="20"/>
+        </mxCell>
+        <mxCell id="cognito_detail" value="USER_PASSWORD_AUTH&#10;Email-based auth&#10;JWT tokens (1h access + 30d refresh)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="590" y="130" width="220" height="70"/>
+        </mxCell>
+
+        <!-- API Gateway -->
+        <mxCell id="apigw_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="580" y="240" width="250" height="140"/>
+        </mxCell>
+        <mxCell id="apigw_label" value="API Gateway HTTP API v2" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="580" y="245" width="250" height="20"/>
+        </mxCell>
+        <mxCell id="apigw_routes" value="Routes:&#10;GET/POST /kbs, /kbs/{id}&#10;DELETE /kbs/{id}, /kbs/{id}/files/{file}&#10;POST /kbs/{id}/upload, /sync&#10;GET /kbs/{id}/files, /sync, /stats&#10;POST /chat&#10;GET/DELETE /history, /history/{id}&#10;OPTIONS /{proxy} (CORS)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="590" y="270" width="230" height="100"/>
+        </mxCell>
+
+        <!-- Lambda functions -->
+        <mxCell id="lambda_kb" value="kb_api.py&#10;KB Management Lambda&#10;10 route handlers&#10;KB CRUD, file mgmt, sync" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="580" y="410" width="180" height="70"/>
+        </mxCell>
+        <mxCell id="lambda_chat" value="chat_handler.py&#10;RAG Chat Lambda&#10;RetrieveAndGenerate&#10;History persistence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="580" y="500" width="180" height="70"/>
+        </mxCell>
+        <mxCell id="lambda_history" value="history_handler.py&#10;History Lambda&#10;List/search conversations&#10;Read/delete MD content" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="580" y="590" width="180" height="70"/>
+        </mxCell>
+
+        <!-- DynamoDB -->
+        <mxCell id="dynamo_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCC80;strokeColor=#E65100;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="860" y="240" width="290" height="180"/>
+        </mxCell>
+        <mxCell id="dynamo_label" value="DynamoDB" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="245" width="290" height="20"/>
+        </mxCell>
+        <mxCell id="dynamo_kbs" value="kbs table:&#10;userId (HASH) + kbId (SORT)&#10;status, bedrockKbId, docCount&#10;lastSyncStatus, vectorIndexArn&#10;GSI: bedrockKbId-index" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="870" y="270" width="130" height="65"/>
+        </mxCell>
+        <mxCell id="dynamo_agents" value="agents table:&#10;userId (HASH) + agentId (SORT)&#10;kbId, name, instructions&#10;GSI: kbId-index" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="870" y="340" width="130" height="65"/>
+        </mxCell>
+        <mxCell id="dynamo_convs" value="conversations table:&#10;userId (HASH) + convId (SORT)&#10;kbId, title, s3Key, msgCount&#10;GSI: kbId-index, agentId-index" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="270" width="130" height="65"/>
+        </mxCell>
+
+        <!-- S3 -->
+        <mxCell id="s3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDC8;strokeColor=#33691E;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="860" y="440" width="290" height="130"/>
+        </mxCell>
+        <mxCell id="s3_label" value="S3 Buckets" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="445" width="290" height="20"/>
+        </mxCell>
+        <mxCell id="s3_docs" value="Documents Bucket:&#10;users/{uid}/kbs/{kbId}/{files}&#10;PDF, TXT, MD, HTML, CSV, DOC, XLS&#10;Versioned, AES-256, CORS enabled" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="870" y="470" width="130" height="55"/>
+        </mxCell>
+        <mxCell id="s3_history" value="History Bucket:&#10;users/{uid}/conversations/{convId}.md&#10;Markdown + YAML frontmatter&#10;Versioned, AES-256" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="470" width="130" height="55"/>
+        </mxCell>
+
+        <!-- Bedrock -->
+        <mxCell id="bedrock_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8BBD0;strokeColor=#880E4F;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="860" y="590" width="290" height="170"/>
+        </mxCell>
+        <mxCell id="bedrock_label" value="Bedrock" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="595" width="290" height="20"/>
+        </mxCell>
+        <mxCell id="bedrock_kb" value="Knowledge Base:&#10;VECTOR type&#10;Titan Text Embeddings v2&#10;S3 Vectors storage" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="870" y="620" width="130" height="55"/>
+        </mxCell>
+        <mxCell id="bedrock_ds" value="Data Source (per KB):&#10;S3 bucket + prefix config&#10;SEMANTIC chunking (95/0/512)&#10;BEDROCK FoundationModel parsing&#10;Claude Haiku 4.5 inference profile&#10;dataDeletionPolicy: RETAIN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="870" y="680" width="130" height="70"/>
+        </mxCell>
+        <mxCell id="bedrock_rag" value="RetrieveAndGenerate:&#10;KNOWLEDGE_BASE type&#10;Claude Haiku 4.5 (inference profile)&#10;$search_results$ template&#10;Citations with source dedup" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="620" width="130" height="55"/>
+        </mxCell>
+
+        <!-- S3 Vectors -->
+        <mxCell id="vectors" value="S3 Vectors&#10;Vector Bucket: bedrock-chat-vectors&#10;Index: idx-{kbId}&#10;float32, 1024d, euclidean&#10;Non-filterable: AMAZON_BEDROCK_TEXT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D1C4E9;strokeColor=#4527A0;" vertex="1" parent="1">
+          <mxGeometry x="860" y="785" width="180" height="70"/>
+        </mxCell>
+
+        <!-- ===== CONNECTIONS ===== -->
+
+        <!-- Browser -> Vercel -->
+        <mxCell id="c1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#333;dashed=1;dashPattern=1 1;" edge="1" parent="1" source="browser_nextjs" target="vercel_next">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Browser -> Cognito (direct) -->
+        <mxCell id="c2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#E67E22;strokeWidth=2;" edge="1" parent="1" source="browser_cognito" target="cognito_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="130"/>
+              <mxPoint x="420" y="130"/>
+              <mxPoint x="420" y="155"/>
+              <mxPoint x="580" y="155"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Vercel -> API Gateway -->
+        <mxCell id="c3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#333;strokeWidth=2;" edge="1" parent="1" source="vercel_next" target="apigw_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="133"/>
+              <mxPoint x="520" y="310"/>
+              <mxPoint x="580" y="310"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- API Gateway -> Lambda KB -->
+        <mxCell id="c4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;strokeColor=#1565C0;" edge="1" parent="1" source="apigw_box" target="lambda_kb">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- API Gateway -> Lambda Chat -->
+        <mxCell id="c5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.25;exitY=1;entryX=0.5;entryY=0;strokeColor=#1565C0;" edge="1" parent="1" source="apigw_box" target="lambda_chat">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- API Gateway -> Lambda History -->
+        <mxCell id="c6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.1;exitY=1;entryX=0.5;entryY=0;strokeColor=#1565C0;" edge="1" parent="1" source="apigw_box" target="lambda_history">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda KB -> DynamoDB -->
+        <mxCell id="c7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.2;strokeColor=#333;" edge="1" parent="1" source="lambda_kb" target="dynamo_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda KB -> S3 Docs -->
+        <mxCell id="c8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.6;entryX=0;entryY=0.3;strokeColor=#333;" edge="1" parent="1" source="lambda_kb" target="s3_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda KB -> S3 Vectors -->
+        <mxCell id="c8b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.8;entryX=0;entryY=0.5;strokeColor=#4527A0;" edge="1" parent="1" source="lambda_kb" target="vectors">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="470"/>
+              <mxPoint x="820" y="820"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Lambda KB -> Bedrock Knowledge Base -->
+        <mxCell id="c9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.1;entryX=0;entryY=0.5;strokeColor=#880E4F;" edge="1" parent="1" source="lambda_kb" target="bedrock_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="425"/>
+              <mxPoint x="820" y="665"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Lambda Chat -> DynamoDB -->
+        <mxCell id="c10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.6;strokeColor=#333;" edge="1" parent="1" source="lambda_chat" target="dynamo_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda Chat -> S3 History -->
+        <mxCell id="c11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.6;entryX=0;entryY=0.6;strokeColor=#333;" edge="1" parent="1" source="lambda_chat" target="s3_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda Chat -> Bedrock RAG -->
+        <mxCell id="c12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.1;entryX=0;entryY=0.2;strokeColor=#880E4F;" edge="1" parent="1" source="lambda_chat" target="bedrock_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="515"/>
+              <mxPoint x="820" y="640"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Lambda History -> DynamoDB -->
+        <mxCell id="c13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.3;entryX=0;entryY=0.8;strokeColor=#333;" edge="1" parent="1" source="lambda_history" target="dynamo_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Lambda History -> S3 History -->
+        <mxCell id="c14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.6;entryX=0;entryY=0.8;strokeColor=#333;" edge="1" parent="1" source="lambda_history" target="s3_box">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Bedrock KB -> Data Source -> S3 Docs -->
+        <mxCell id="c15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.2;entryY=0;strokeColor=#880E4F;" edge="1" parent="1" source="bedrock_box" target="vectors">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Bedrock RAG -> Knowledge Base (internal) -->
+        <mxCell id="c15b" style="rounded=0;html=1;strokeColor=#880E4F;dashed=1;dashPattern=1 1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1075" y="640"/>
+            <mxPoint x="940" y="640"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Browser -> S3 (presigned PUT) -->
+        <mxCell id="c16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;strokeColor=#33691E;strokeWidth=2;dashed=1;dashPattern=4 2;" edge="1" parent="1" source="browser_nextjs" target="s3_box">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="280" y="130"/>
+              <mxPoint x="500" y="130"/>
+              <mxPoint x="500" y="505"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Bedrock trust arrows (internal) -->
+        <mxCell id="c17" style="rounded=0;html=1;strokeColor=#2E7D32;dashed=1;dashPattern=1 1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="945" y="710"/>
+            <mxPoint x="945" y="785"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999;" vertex="1" parent="1">
+          <mxGeometry x="20" y="260" width="250" height="130"/>
+        </mxCell>
+        <mxCell id="legend_title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="265" width="250" height="20"/>
+        </mxCell>
+        <mxCell id="leg_req" value="" style="line;strokeWidth=2;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="295" width="30" height="4"/>
+        </mxCell>
+        <mxCell id="leg_req_t" value="Request/API call" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="65" y="286" width="100" height="20"/>
+        </mxCell>
+        <mxCell id="leg_dashed" value="" style="line;strokeWidth=2;dashed=1;dashPattern=4 2;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="315" width="30" height="4"/>
+        </mxCell>
+        <mxCell id="leg_dashed_t" value="Presigned upload (bypass)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="65" y="306" width="130" height="20"/>
+        </mxCell>
+        <mxCell id="leg_auth" value="──" style="line;strokeWidth=2;strokeColor=#E67E22;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="335" width="30" height="4"/>
+        </mxCell>
+        <mxCell id="leg_auth_t" value="Auth flow (Cognito SDK)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="65" y="326" width="150" height="20"/>
+        </mxCell>
+        <mxCell id="leg_bedrock" value="──" style="line;strokeWidth=2;strokeColor=#880E4F;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="355" width="30" height="4"/>
+        </mxCell>
+        <mxCell id="leg_bedrock_t" value="Bedrock API calls" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="65" y="346" width="130" height="20"/>
+        </mxCell>
+
+        <!-- Deployment section -->
+        <mxCell id="deploy_box" value="" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;dashPattern=1 1;fillColor=#E0F2F1;strokeColor=#00695C;" vertex="1" parent="1">
+          <mxGeometry x="20" y="410" width="250" height="100"/>
+        </mxCell>
+        <mxCell id="deploy_label" value="Deployment" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="415" width="250" height="20"/>
+        </mxCell>
+        <mxCell id="deploy_detail" value="Frontend: Vercel (auto from GitHub)&#10;Backend: Terraform Cloud + AWS CLI&#10;Lambda updates: build.ps1 → update-function-code" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="30" y="440" width="230" height="60"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
