@@ -171,7 +171,7 @@ export default function Dashboard() {
                   {deleting === kb.kbId ? (
                     <Loader2 className="h-5 w-5 animate-spin text-red-400" />
                   ) : (
-                    <button onClick={() => handleDelete(kb.kbId)} className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                    <button onClick={() => handleDelete(kb.kbId)} className="text-gray-400 hover:text-red-400 transition-all">
                       <Trash2 className="h-5 w-5" />
                     </button>
                   )}
