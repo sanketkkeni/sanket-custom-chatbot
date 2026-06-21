@@ -32,7 +32,7 @@ export default function KBCard({ kb, onDelete, deleting }: KBCardProps) {
         {deleting ? (
           <RefreshCw className="h-5 w-5 animate-spin text-red-400" />
         ) : (
-          <button onClick={() => onDelete(kb.kbId)} className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+          <button onClick={() => onDelete(kb.kbId)} className="text-gray-400 hover:text-red-400 transition-all">
             <Trash2 className="h-5 w-5" />
           </button>
         )}
