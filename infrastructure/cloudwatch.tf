@@ -38,3 +38,5 @@ resource "aws_cloudwatch_log_group" "history_handler_logs" {
     Project     = var.project_name
   }
 }
+
+

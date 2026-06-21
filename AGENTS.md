@@ -15,7 +15,7 @@
 - Database: DynamoDB (PAY_PER_REQUEST)
 - Storage: S3 (documents, conversation MD files)
 - Vector: S3 Vectors (shared bucket, unique index per KB)
-- AI: Bedrock Knowledge Bases, Claude Haiku 4.5 via inference profile (RetrieveAndGenerate + document parsing), Titan Text Embeddings v2
+- AI: Bedrock Knowledge Bases, Claude Sonnet 4.6 via inference profile (RetrieveAndGenerate + document parsing + multimodal parsing), Titan Text Embeddings v2
 
 ### Naming
 - Terraform project_name: "bedrock-chat"
@@ -60,16 +60,26 @@ project/
 ```
 
 ### Configuration
-- Parsing: `BEDROCK_FOUNDATION_MODEL` using `us.anthropic.claude-haiku-4-5-20251001-v1:0` inference profile
+- Parsing: `BEDROCK_FOUNDATION_MODEL` using `us.anthropic.claude-sonnet-4-6` inference profile with `parsingModality: MULTIMODAL`
+- Chat model: `us.anthropic.claude-sonnet-4-6` inference profile
+- Embedding: `amazon.titan-embed-text-v2:0` (1024 dimensions, FLOAT32)
 - Chunking: `SEMANTIC` (breakpointPercentileThreshold=95, bufferSize=0, maxTokens=512)
 - Both parsing and chunking are immutable after data source creation — must delete/recreate data source to change
-- `parsingConfiguration` requires `bedrock:GetInferenceProfile` + `bedrock:InvokeModel` on both the inference profile ARN AND underlying foundation model ARNs (all 3 US regions) for the Bedrock execution role
+- `parsingConfiguration` with `parsingModality: MULTIMODAL` is also immutable — must delete/recreate data source
+- Multimodal storage S3 bucket is required for JPG/PNG image support in KB
+- For converse/invoke testing, use inference profile ARN (e.g., `us.anthropic.claude-sonnet-4-6`), NOT the base model ID (`anthropic.claude-sonnet-4-6`)
+- For Sonnet 4.6, the first invocation from any IAM user triggers auto-subscription via AWS Marketplace (requires `aws-marketplace:Subscribe` + `aws-marketplace:ViewSubscriptions` on the IAM user) — after that, all roles in the account can use it
 
 ### Commands
 - Terraform: `cd infrastructure; terraform init; terraform plan -out plan.tfplan; terraform apply plan.tfplan`
 - Build Lambdas: `cd backend; ./build.ps1`
 - Dev server: `cd frontend; npm run dev`
 - Update Lambda directly: `aws lambda update-function-code --function-name <name> --zip-file fileb://infrastructure/<name>.zip`
+
+### Lambda Layer Build (Pillow)
+- When building the Pillow Lambda layer, the `Compress-Archive` must zip the `python` **directory** (not its contents) to preserve the `python/` prefix required by Lambda runtimes
+- Correct: `Compress-Archive -Path "python" -DestinationPath "pillow-layer.zip"`
+- Wrong: `Compress-Archive -Path "python\*" -DestinationPath "pillow-layer.zip"` (creates flat zip without prefix)
 
 ### Documentation
 - When fixing a bug, document the issue in `all_issues_faced_and_how_it_was_fixed.md`

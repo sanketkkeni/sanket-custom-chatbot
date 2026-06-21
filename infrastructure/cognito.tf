@@ -2,7 +2,7 @@
 resource "aws_cognito_user_pool" "this" {
   name = var.cognito_user_pool_name
 
-  username_attributes = ["email"]
+  username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
   password_policy {
@@ -79,7 +79,7 @@ resource "aws_cognito_user_pool_client" "this" {
   name         = var.cognito_client_name
   user_pool_id = aws_cognito_user_pool.this.id
 
-  generate_secret = false
+  generate_secret     = false
   explicit_auth_flows = ["ADMIN_NO_SRP_AUTH", "USER_PASSWORD_AUTH"]
 
   access_token_validity  = 1

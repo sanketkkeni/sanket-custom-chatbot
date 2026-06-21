@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Brain, Search, Trash2, MessageSquare, Clock, ArrowLeft, Loader2, ChevronRight } from 'lucide-react';
+import { Brain, Search, Trash2, MessageSquare, Clock, ArrowLeft, Loader2, ChevronRight, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { listConversations, getConversation, deleteConversation } from '../lib/api';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -9,6 +9,7 @@ import MarkdownRenderer from '../components/MarkdownRenderer';
 export default function History() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -77,12 +78,27 @@ export default function History() {
 
   return (
     <div className="min-h-screen bg-dark-900 text-white flex">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <div className="w-80 bg-dark-800 border-r border-dark-600 flex flex-col">
+      <div className={`
+        w-80 bg-dark-800 border-r border-dark-600 flex flex-col flex-shrink-0
+        ${sidebarOpen ? 'max-md:flex' : 'max-md:hidden'}
+        md:flex
+        max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50
+      `}>
         <div className="p-4 border-b border-dark-600">
-          <Link href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-white mb-4 transition-colors">
-            <ArrowLeft className="h-5 w-5" /> Dashboard
-          </Link>
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+              <ArrowLeft className="h-5 w-5" /> Dashboard
+            </Link>
+            <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+              <X className="h-5 w-5" />
+            </button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
             <input
@@ -104,7 +120,7 @@ export default function History() {
             conversations.map((conv) => (
               <div
                 key={conv.conversationId}
-                onClick={() => handleSelect(conv)}
+                onClick={() => { handleSelect(conv); setSidebarOpen(false); }}
                 className={`p-4 border-b border-dark-600 cursor-pointer hover:bg-dark-700 transition-colors ${
                   selectedConv?.conversationId === conv.conversationId ? 'bg-dark-600' : ''
                 }`}
@@ -132,14 +148,22 @@ export default function History() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-8 overflow-y-auto min-w-0">
+        {/* Mobile header with hamburger */}
+        <div className="flex items-center gap-3 mb-6 md:hidden">
+          <button className="text-gray-400 hover:text-white" onClick={() => setSidebarOpen(true)}>
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="font-semibold">History</h1>
+        </div>
+
         {selectedConv ? (
           <div>
-            <h1 className="text-2xl font-bold mb-2">{selectedConv.title}</h1>
+            <h1 className="text-xl md:text-2xl font-bold mb-2">{selectedConv.title}</h1>
             <p className="text-sm text-gray-400 mb-6">
               {new Date(selectedConv.createdAt).toLocaleString()} &bull; {selectedConv.messageCount} messages
             </p>
-            <div className="glass-dark rounded-2xl p-6">
+            <div className="glass-dark rounded-2xl p-4 md:p-6">
               <MarkdownRenderer content={selectedContent} />
             </div>
           </div>

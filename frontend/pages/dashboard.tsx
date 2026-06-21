@@ -2,14 +2,14 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { Brain, Plus, Loader2, Trash2, MessageSquare, FileText, RefreshCw } from 'lucide-react';
+import { Brain, Plus, Loader2, Trash2, MessageSquare, FileText, RefreshCw, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { listKBs, deleteKB, createKB } from '../lib/api';
 
 export default function Dashboard() {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
-  const { refreshKBs } = useApp();
+  const { sidebarOpen, setSidebarOpen, refreshKBs } = useApp();
   const [kbs, setKBs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -75,19 +75,34 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-dark-900 text-white flex">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-dark-800 border-r border-dark-600 p-6 flex flex-col">
-        <Link href="/" className="flex items-center gap-2 mb-8">
-          <Brain className="h-8 w-8 text-primary-500" />
-          <span className="text-lg font-bold">Custom Chatbot</span>
-        </Link>
+      <div className={`
+        w-64 bg-dark-800 border-r border-dark-600 p-6 flex flex-col flex-shrink-0
+        ${sidebarOpen ? 'max-md:flex' : 'max-md:hidden'}
+        md:flex
+        max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50
+      `}>
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/" className="flex items-center gap-2">
+            <Brain className="h-8 w-8 text-primary-500" />
+            <span className="text-lg font-bold">Custom Chatbot</span>
+          </Link>
+          <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
         <nav className="flex-1 space-y-2">
           <div className="flex items-center gap-3 px-3 py-2 bg-dark-600 rounded-lg text-primary-400">
             <LayoutDashboard className="h-5 w-5" />
             <span>Dashboard</span>
           </div>
-          <Link href="/history" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-600 transition-colors">
+          <Link href="/history" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-600 transition-colors">
             <Clock className="h-5 w-5" />
             <span>History</span>
           </Link>
@@ -100,10 +115,15 @@ export default function Dashboard() {
       </div>
 
       {/* Main */}
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-4 md:p-8 min-w-0">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Knowledge Bases</h1>
-          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+          <div className="flex items-center gap-3">
+            <button className="md:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-6 w-6" />
+            </button>
+            <h1 className="text-xl md:text-2xl font-bold">Knowledge Bases</h1>
+          </div>
+          <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors text-sm md:text-base whitespace-nowrap">
             <Plus className="h-5 w-5" />
             New KB
           </button>

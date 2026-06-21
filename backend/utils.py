@@ -46,6 +46,7 @@ PARSING_MODEL_ARN = os.environ.get('PARSING_MODEL_ARN', '')
 SEMANTIC_CHUNKING_BREAKPOINT_PCT = int(os.environ.get('SEMANTIC_CHUNKING_BREAKPOINT_PCT', 95))
 SEMANTIC_CHUNKING_BUFFER_SIZE = int(os.environ.get('SEMANTIC_CHUNKING_BUFFER_SIZE', 0))
 SEMANTIC_CHUNKING_MAX_TOKENS = int(os.environ.get('SEMANTIC_CHUNKING_MAX_TOKENS', 512))
+MULTIMODAL_STORAGE_BUCKET = os.environ.get('MULTIMODAL_STORAGE_BUCKET', '')
 AWS_REGION = os.environ.get('AWS_REGION', 'us-east-1')
 
 kbs_table = dynamodb.Table(KB_TABLE_NAME) if KB_TABLE_NAME else None
@@ -156,27 +157,43 @@ def create_knowledge_base(user_id, kb_id, name):
     uuid_suffix = kb_id[3:]
     bedrock_kb_name = f"kb-{sanitize_kb_name(name)}-{uuid_suffix}"
 
+    storage_config = {
+        'type': 'S3_VECTORS',
+        's3VectorsConfiguration': {
+            'indexArn': index_arn
+        }
+    }
+
+    vector_kb_config = {
+        'embeddingModelArn': EMBEDDING_MODEL_ARN,
+        'embeddingModelConfiguration': {
+            'bedrockEmbeddingModelConfiguration': {
+                'dimensions': VECTOR_DIMENSION,
+                'embeddingDataType': 'FLOAT32'
+            }
+        }
+    }
+
+    if MULTIMODAL_STORAGE_BUCKET:
+        vector_kb_config['supplementalDataStorageConfiguration'] = {
+            'storageLocations': [
+                {
+                    'type': 'S3',
+                    's3Location': {
+                        'uri': f"s3://{MULTIMODAL_STORAGE_BUCKET}"
+                    }
+                }
+            ]
+        }
+
     response = bedrock_agent.create_knowledge_base(
         name=bedrock_kb_name,
         roleArn=BEDROCK_ROLE_ARN,
         knowledgeBaseConfiguration={
             'type': 'VECTOR',
-            'vectorKnowledgeBaseConfiguration': {
-                'embeddingModelArn': EMBEDDING_MODEL_ARN,
-                'embeddingModelConfiguration': {
-                    'bedrockEmbeddingModelConfiguration': {
-                        'dimensions': VECTOR_DIMENSION,
-                        'embeddingDataType': 'FLOAT32'
-                    }
-                }
-            }
+            'vectorKnowledgeBaseConfiguration': vector_kb_config
         },
-        storageConfiguration={
-            'type': 'S3_VECTORS',
-            's3VectorsConfiguration': {
-                'indexArn': index_arn
-            }
-        }
+        storageConfiguration=storage_config
     )
 
     kb_info = response['knowledgeBase']
@@ -228,7 +245,8 @@ def create_knowledge_base(user_id, kb_id, name):
         data_source_kwargs['vectorIngestionConfiguration']['parsingConfiguration'] = {
             'parsingStrategy': 'BEDROCK_FOUNDATION_MODEL',
             'bedrockFoundationModelConfiguration': {
-                'modelArn': PARSING_MODEL_ARN
+                'modelArn': PARSING_MODEL_ARN,
+                'parsingModality': 'MULTIMODAL'
             }
         }
 

@@ -165,9 +165,9 @@ resource "aws_iam_policy" "lambda_bedrock" {
         Resource = [
           local.embedding_model_arn,
           local.chat_model_arn,
-          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
-          "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
-          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-6",
+          "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-sonnet-4-6",
+          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-4-6"
         ]
       },
       {
@@ -221,8 +221,8 @@ resource "aws_iam_policy" "lambda_pass_role" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
-      Action = "iam:PassRole"
+      Effect   = "Allow"
+      Action   = "iam:PassRole"
       Resource = aws_iam_role.bedrock_execution.arn
     }]
   })
@@ -231,6 +231,57 @@ resource "aws_iam_policy" "lambda_pass_role" {
 resource "aws_iam_role_policy_attachment" "lambda_pass_role" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.lambda_pass_role.arn
+}
+
+
+# IAM Role for Image Processor Lambda
+resource "aws_iam_role" "image_processor_role" {
+  name = "${var.project_name}-image-processor-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+
+  tags = {
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "image_processor_basic" {
+  role       = aws_iam_role.image_processor_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_policy" "image_processor_s3" {
+  name = "${var.project_name}-image-processor-s3"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:PutObjectTagging",
+          "s3:GetObjectTagging"
+        ]
+        Resource = "${aws_s3_bucket.documents.arn}/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "image_processor_s3" {
+  role       = aws_iam_role.image_processor_role.name
+  policy_arn = aws_iam_policy.image_processor_s3.arn
 }
 
 # IAM Role for API Gateway logging
@@ -313,15 +364,15 @@ resource "aws_iam_role_policy" "bedrock_s3_documents" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "ListBucket"
-        Action = "s3:ListBucket"
-        Effect = "Allow"
+        Sid      = "ListBucket"
+        Action   = "s3:ListBucket"
+        Effect   = "Allow"
         Resource = aws_s3_bucket.documents.arn
       },
       {
-        Sid    = "GetObjects"
-        Action = "s3:GetObject"
-        Effect = "Allow"
+        Sid      = "GetObjects"
+        Action   = "s3:GetObject"
+        Effect   = "Allow"
         Resource = "${aws_s3_bucket.documents.arn}/*"
       }
     ]
@@ -336,7 +387,7 @@ resource "aws_iam_role_policy" "bedrock_s3_vectors" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "VectorBucketS3Access"
+        Sid = "VectorBucketS3Access"
         Action = [
           "s3:ListBucket",
           "s3:GetObject",
@@ -349,15 +400,46 @@ resource "aws_iam_role_policy" "bedrock_s3_vectors" {
         ]
       },
       {
-        Sid    = "VectorIndexAccess"
+        Sid = "VectorIndexAccess"
         Action = [
           "s3vectors:PutVectors",
           "s3vectors:GetVectors",
           "s3vectors:QueryVectors",
           "s3vectors:DeleteVectors"
         ]
-        Effect = "Allow"
+        Effect   = "Allow"
         Resource = "${aws_s3vectors_vector_bucket.this.vector_bucket_arn}/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "bedrock_s3_multimodal_storage" {
+  name = "${var.project_name}-bedrock-s3-multimodal-storage"
+  role = aws_iam_role.bedrock_execution.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "BucketAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketLocation",
+          "s3:GetBucketAcl"
+        ]
+        Resource = aws_s3_bucket.multimodal_storage.arn
+      },
+      {
+        Sid    = "ObjectAccess"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = "${aws_s3_bucket.multimodal_storage.arn}/*"
       }
     ]
   })
@@ -371,15 +453,15 @@ resource "aws_iam_role_policy" "bedrock_invoke_models" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "InvokeEmbeddingModel"
-        Action = "bedrock:InvokeModel"
-        Effect = "Allow"
+        Sid      = "InvokeEmbeddingModel"
+        Action   = "bedrock:InvokeModel"
+        Effect   = "Allow"
         Resource = local.embedding_model_arn
       },
       {
-        Sid    = "GetInferenceProfile"
-        Action = "bedrock:GetInferenceProfile"
-        Effect = "Allow"
+        Sid      = "GetInferenceProfile"
+        Action   = "bedrock:GetInferenceProfile"
+        Effect   = "Allow"
         Resource = local.parsing_model_arn
       },
       {
@@ -388,10 +470,19 @@ resource "aws_iam_role_policy" "bedrock_invoke_models" {
         Effect = "Allow"
         Resource = [
           local.parsing_model_arn,
-          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
-          "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
-          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+          "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-6",
+          "arn:aws:bedrock:us-east-2::foundation-model/anthropic.claude-sonnet-4-6",
+          "arn:aws:bedrock:us-west-2::foundation-model/anthropic.claude-sonnet-4-6"
         ]
+      },
+      {
+        Sid    = "Marketplace"
+        Effect = "Allow"
+        Action = [
+          "aws-marketplace:Subscribe",
+          "aws-marketplace:ViewSubscriptions"
+        ]
+        Resource = "*"
       }
     ]
   })

@@ -391,3 +391,107 @@ if method == 'DELETE' and route.startswith('/kbs/') and '/files/' not in route:
 **Files changed**:
 - `backend/kb_api.py` — Reordered DELETE handlers (file-delete above KB-delete); added `'/files/' not in route` guard on KB-delete; added `routeKey` and `path_params` to logging for debugging.
 - `backend/build.ps1` — Changed output path to `..\infrastructure` so zips go directly to the infrastructure folder, preventing stale-zip deployment issues.
+
+---
+
+## Issue 19: JPG/PNG Files Rejected — "File Format Not Supported" in Bedrock KB
+
+**Symptom**: Uploading a JPG or PNG image to a KB and syncing resulted in `"Ignored 1 files as their file format was not supported"`. The ingestion job completed but zero documents were indexed.
+
+**Root Cause**: Bedrock KB with a foundation model parser (Sonnet 4.6) requires a **multimodal storage destination** S3 bucket to accept image files (JPG/PNG). Without `supplementalDataStorageConfiguration` in the KB, Bedrock falls back to the default (text-only) parser, which rejects non-text formats. The parser model and the KB storage configuration are separate — you can have Sonnet 4.6 configured as the parser but if there's no multimodal storage bucket, the KB refuses image files.
+
+Also: the chat model was updated from Claude Haiku 4.5 to Sonnet 4.6 for better reasoning at query time. Stale Claude Haiku 4.5 foundation model ARNs were removed from the Lambda IAM policy.
+
+**Fix**: Five changes:
+1. **New S3 bucket** (`infrastructure/s3.tf`): Added `aws_s3_bucket.multimodal_storage` (`bedrock-chat-storage-{random}`) with versioning and SSE enabled — acts as the multimodal storage destination for Bedrock KB.
+2. **Bedrock execution role S3 policy** (`infrastructure/iam.tf`): Added `bedrock_s3_multimodal_storage` policy granting `s3:ListBucket`/`s3:GetObject`/`s3:PutObject` on the new bucket — Bedrock needs this to store/retrieve parsed multimodal content.
+3. **Lambda env var** (`infrastructure/lambda.tf`): Added `MULTIMODAL_STORAGE_BUCKET` to the `kb_api` Lambda environment.
+4. **Backend logic** (`backend/utils.py`): Reads `MULTIMODAL_STORAGE_BUCKET` env var; conditionally adds `supplementalDataStorageConfiguration.storageLocations[{s3://bucket/kb/{name}/}]` to the `create_knowledge_base` call when the bucket is set.
+5. **Chat model upgrade** (`infrastructure/variables.tf`): Changed `chat_model_id` default from `us.anthropic.claude-haiku-4-5-20251001-v1:0` to `us.anthropic.claude-sonnet-4-6`; removed stale Haiku ARNs from IAM policy.
+
+**Language support**: Hindi, Marathi, and English text extraction from images is handled by the Sonnet 4.6 parser (already configured as `BEDROCK_FOUNDATION_MODEL` with `parsingModelArn`). The multimodal storage bucket enables this parser to receive JPG/PNG input instead of falling back to the default text-only parser.
+
+**Files changed**:
+- `infrastructure/s3.tf` — Added `multimodal_storage` S3 bucket + versioning + encryption
+- `infrastructure/iam.tf` — Added `bedrock_s3_multimodal_storage` policy on Bedrock execution role; removed stale Haiku ARNs from Lambda bedrock policy
+- `infrastructure/lambda.tf` — Added `MULTIMODAL_STORAGE_BUCKET` env var to `kb_api`
+- `infrastructure/variables.tf` — Changed `chat_model_id` default to Sonnet 4.6
+- `infrastructure/outputs.tf` — Added `multimodal_storage_bucket` output
+- `backend/utils.py` — Added `MULTIMODAL_STORAGE_BUCKET` env var; added `supplementalDataStorageConfiguration` to `create_knowledge_base`
+
+---
+
+## Issue 20: JPG/PNG Files Rejected as "File Format Not Supported"
+
+**Symptom**: After JPG upload to KB data source ingestion job returns `COMPLETE` but statistics show `numberOfDocumentsFailed: 1` with reason: `"Ignored 1 files as their file format was not supported."`
+
+**Root Cause**: The Foundation Model parser's `bedrockFoundationModelConfiguration` was missing the `parsingModality` field. When not set, it defaults to text-only parsing, which rejects standalone image files (JPG, PNG, etc.) even though the KB has multimodal storage (`supplementalDataStorageConfiguration`) configured.
+
+**Fix**: Added `'parsingModality': 'MULTIMODAL'` to the `bedrockFoundationModelConfiguration` dict in `create_data_source()` call. This tells the Foundation Model parser to enable parsing of multimodal data including both text and images.
+
+**Important detail**: The `parsingConfiguration` is immutable after data source creation — you must delete and recreate the data source to change it. After adding `parsingModality: MULTIMODAL`:
+
+New data source `H1W8JIVVV3` on KB `YY9Z6WIFHQ` completed successfully:
+- Scanned: 1 (test_account.jpg)
+- New documents indexed: 1
+- Failed: 0
+
+Verified with `RetrieveAndGenerate` query:
+- "What is the account balance and customer name?" → "Rajesh Sharma, Rs 1,25,000"
+- Hindi content "Namaste, aapaka swagat hai" was also extracted and retrievable
+
+**Files changed**:
+- `backend/utils.py` — Added `'parsingModality': 'MULTIMODAL'` to `bedrockFoundationModelConfiguration` (line 249)
+
+---
+
+## Issue 21: Oversized JPG/PNG Files Rejected by Bedrock KB (3.75 MB Limit)
+
+**Symptom**: Uploading large JPG files (>3.75 MB) to a KB resulted in ingestion failure with `"Unknown failure code: UNKNOWN [Files: null]"`. Files between 3.75 MB and 7 MB were silently rejected during sync.
+
+**Root Cause**: Bedrock KB has a hard 3.75 MB file size limit for JPG/PNG images when using the Foundation Model parser with `parsingModality: MULTIMODAL`. Files exceeding this limit fail silently during ingestion. No compression was applied — users could upload images of any size but the KB would reject oversized ones.
+
+**Fix**: Implemented automated server-side image compression via an S3-triggered Lambda (`bedrock-chat-image-processor`):
+
+1. **New Lambda** (`backend/image_processor.py`): Triggered by S3 `s3:ObjectCreated:*` events on `.jpg`, `.jpeg`, `.png` files. When an image exceeds 3.5 MB, it progressively reduces JPEG quality (85→20), then resizes dimensions (80% steps) until under 3.5 MB. Sets `bedrock_processed=true` tag to prevent re-processing loops.
+
+2. **Pillow dependency**: Created Lambda layer with Pillow for Python 3.13. Layer built via `pip install --platform manylinux2014_x86_64 --python-version 313 --only-binary=:all:`.
+
+3. **Infrastructure**: Added IAM role (`image_processor_role`) with `AWSLambdaBasicExecutionRole` + S3 read/write/tagging permissions. Added S3 bucket notification filtering `.jpg`, `.jpeg`, `.png` suffixes. Added Lambda permission allowing S3 invocation.
+
+4. **Existing files**: After deployment, existing large files were handled by copying them in-place (`aws s3 cp`) to trigger S3 events, which the Lambda then compressed.
+
+**Files changed**:
+- `backend/image_processor.py` — New Lambda for S3-triggered image compression
+- `infrastructure/lambda.tf` — Added `aws_lambda_layer_version.pillow`, `aws_lambda_function.image_processor`, `aws_lambda_permission.image_processor_s3`
+- `infrastructure/iam.tf` — Added `aws_iam_role.image_processor_role` + inline S3 policy
+- `infrastructure/s3.tf` — Added `aws_s3_bucket_notification.documents_image_processor`
+- `backend/build.ps1` — Added Pillow layer build + `image_processor.zip` creation
+
+---
+
+## Issue 22: Pillow Lambda Layer Import Error — "No module named 'PIL'"
+
+**Symptom**: The `bedrock-chat-image-processor` Lambda failed at runtime with `Runtime.ImportModuleError: Unable to import module 'image_processor': No module named 'PIL'`. The Pillow layer (`bedrock-chat-pillow:1` at 8.5 MB) was attached to the function but Python couldn't find the PIL module.
+
+**Root Cause**: The `build.ps1` script used `Compress-Archive -Path python\*` which zipped the **contents** of the `python/` directory, not the directory itself. The resulting zip had entries like `PIL/AvifImagePlugin.py` at the root level instead of `python/PIL/AvifImagePlugin.py`. Lambda layers require the `python/` prefix directory for Python runtime to find packages via `sys.path`.
+
+```powershell
+# BROKEN: zips contents of python/ directly
+Compress-Archive -Path (Join-Path $LAYER_DIR "python\*") -DestinationPath pillow-layer.zip
+
+# FIXED: zips the python/ directory itself, preserving the prefix
+Compress-Archive -Path (Join-Path $LAYER_DIR "python") -DestinationPath pillow-layer.zip
+```
+
+**Fix**: Changed `python\*` to `python` in the `Compress-Archive` call in `backend/build.ps1` line 31. Rebuilt all zips, ran `terraform apply` to publish a new layer version (v2) and update the Lambda function's layer reference.
+
+**Verification**: 
+- Layer v2 zip entries now correctly start with `python/PIL/...`
+- Uploaded 14.84 MB test image → Lambda compressed to 3.35 MB ✓
+- Existing 7.3 MB and 4.66 MB files compressed to 3.37 MB and 2.46 MB ✓
+- Both KBs re-synced with 0 failures ✓
+- RAG queries work against compressed images ✓
+
+**Files changed**:
+- `backend/build.ps1` — Changed `python\*` to `python` in `Compress-Archive` on line 31

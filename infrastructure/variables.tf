@@ -31,7 +31,7 @@ variable "vector_dimension" {
 variable "chat_model_id" {
   description = "Bedrock chat model inference profile ID for RetrieveAndGenerate"
   type        = string
-  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  default     = "us.anthropic.claude-sonnet-4-6"
 }
 
 variable "s3_bucket_prefix" {
@@ -71,7 +71,7 @@ variable "fixed_size_overlap_percentage" {
 variable "parsing_model_id" {
   description = "Bedrock model ID for FOUNDATION_MODEL parsing strategy"
   type        = string
-  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+  default     = "us.anthropic.claude-sonnet-4-6"
 }
 
 variable "semantic_chunking_breakpoint_percentile_threshold" {

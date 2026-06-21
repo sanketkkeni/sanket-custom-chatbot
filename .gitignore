@@ -39,6 +39,9 @@ Thumbs.db
 # Playwright
 frontend/test-results/
 
+# Build artifacts
+backend/layer/
+
 # Test artifacts
 *.png
 deployed_kb/
@@ -47,4 +50,6 @@ output.txt
 key.json
 payload.json
 response.json
+test_result.json
+test_large.jpg
 

@@ -288,6 +288,7 @@ def handle_start_sync(user_id, kb_id):
         return create_response(400, {'message': 'KB not fully configured'})
 
     try:
+        # Start ingestion
         job_id = start_ingestion(bedrock_kb_id, data_source_id)
         kbs_table.update_item(
             Key={'userId': user_id, 'kbId': kb_id},

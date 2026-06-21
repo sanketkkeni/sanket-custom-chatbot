@@ -32,6 +32,30 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "documents" {
   }
 }
 
+resource "aws_s3_bucket_notification" "documents_image_processor" {
+  bucket = aws_s3_bucket.documents.id
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.image_processor.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_suffix       = ".jpg"
+  }
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.image_processor.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_suffix       = ".jpeg"
+  }
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.image_processor.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_suffix       = ".png"
+  }
+
+  depends_on = [aws_lambda_permission.image_processor_s3]
+}
+
 resource "aws_s3_bucket_cors_configuration" "documents" {
   bucket = aws_s3_bucket.documents.id
 
@@ -65,6 +89,34 @@ resource "aws_s3_bucket_versioning" "history" {
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "history" {
   bucket = aws_s3_bucket.history.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# Multimodal storage bucket for Bedrock KB (required for JPG/PNG parsing with FM parser)
+resource "aws_s3_bucket" "multimodal_storage" {
+  bucket        = "${var.project_name}-storage-${random_string.suffix.result}"
+  force_destroy = true
+
+  tags = {
+    Name        = "${var.project_name}-storage-${random_string.suffix.result}"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_s3_bucket_versioning" "multimodal_storage" {
+  bucket = aws_s3_bucket.multimodal_storage.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "multimodal_storage" {
+  bucket = aws_s3_bucket.multimodal_storage.id
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"

@@ -1,7 +1,7 @@
 # DynamoDB Table for KBs
 resource "aws_dynamodb_table" "kbs" {
-  name           = var.kbs_table_name
-  billing_mode   = "PAY_PER_REQUEST"
+  name         = var.kbs_table_name
+  billing_mode = "PAY_PER_REQUEST"
 
   attribute {
     name = "userId"
@@ -34,8 +34,8 @@ resource "aws_dynamodb_table" "kbs" {
 }
 
 resource "aws_dynamodb_table" "agents" {
-  name           = var.agents_table_name
-  billing_mode   = "PAY_PER_REQUEST"
+  name         = var.agents_table_name
+  billing_mode = "PAY_PER_REQUEST"
 
   attribute {
     name = "userId"
@@ -68,8 +68,8 @@ resource "aws_dynamodb_table" "agents" {
 }
 
 resource "aws_dynamodb_table" "conversations" {
-  name           = var.conversations_table_name
-  billing_mode   = "PAY_PER_REQUEST"
+  name         = var.conversations_table_name
+  billing_mode = "PAY_PER_REQUEST"
 
   attribute {
     name = "userId"
