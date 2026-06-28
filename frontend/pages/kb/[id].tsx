@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Brain, ArrowLeft, Loader2, Upload, FileText, FileSpreadsheet, Trash2, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Brain, ArrowLeft, Loader2, Upload, FileText, FileSpreadsheet, Trash2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { getKB, listFiles, deleteFile, startSync, getSyncStatus, getKBStats, getUploadUrls, uploadToS3 } from '../../lib/api';
 
@@ -44,6 +44,31 @@ export default function KBDetail() {
     if (id && user) loadKB();
   }, [id, user]);
 
+  const triggerSync = async () => {
+    if (!id || syncing) return;
+    setSyncing(true);
+    setSyncStatus(null);
+    setError('');
+    try {
+      const result = await startSync(id as string);
+      setSyncStatus(result);
+      const poll = setInterval(async () => {
+        try {
+          const status = await getSyncStatus(id as string);
+          setSyncStatus(status);
+          if (status.status === 'COMPLETE' || status.status === 'FAILED') {
+            clearInterval(poll);
+            setSyncing(false);
+            loadKB();
+          }
+        } catch { }
+      }, 5000);
+    } catch (err: any) {
+      setError(err.message);
+      setSyncing(false);
+    }
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0 || !id) return;
@@ -59,6 +84,7 @@ export default function KBDetail() {
         )
       );
       loadKB();
+      triggerSync();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -71,33 +97,9 @@ export default function KBDetail() {
     try {
       await deleteFile(id as string, fileKey);
       loadKB();
+      triggerSync();
     } catch (err: any) {
       setError(err.message);
-    }
-  };
-
-  const handleSync = async () => {
-    if (!id) return;
-    setSyncing(true);
-    setError('');
-    try {
-      const result = await startSync(id as string);
-      setSyncStatus(result);
-      // Poll for status
-      const poll = setInterval(async () => {
-        try {
-          const status = await getSyncStatus(id as string);
-          setSyncStatus(status);
-          if (status.status === 'COMPLETE' || status.status === 'FAILED') {
-            clearInterval(poll);
-            setSyncing(false);
-            loadKB();
-          }
-        } catch { }
-      }, 5000);
-    } catch (err: any) {
-      setError(err.message);
-      setSyncing(false);
     }
   };
 
@@ -120,32 +122,22 @@ export default function KBDetail() {
           <ArrowLeft className="h-5 w-5" /> Back to Dashboard
         </Link>
 
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">{kb.name}</h1>
-            <div className="flex gap-4 text-sm text-gray-400">
-              <span>Status: <span className={kb.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}>{kb.status}</span></span>
-              {syncing && <span className="text-yellow-400 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Syncing...</span>}
-              {!syncing && kb.lastSyncStatus === 'COMPLETE' && (
-                <span>Last sync: <span className="text-green-400">Completed</span></span>
-              )}
-              {!syncing && kb.lastSyncStatus === 'FAILED' && (
-                <span>Last sync: <span className="text-red-400">Failed</span></span>
-              )}
-              {!syncing && kb.lastSyncStatus === 'IN_PROGRESS' && (
-                <span className="text-yellow-400">Sync in progress...</span>
-              )}
-              <span>Files: {kb.documentCount || 0}</span>
-            </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">{kb.name}</h1>
+          <div className="flex gap-4 text-sm text-gray-400">
+            <span>Status: <span className={kb.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}>{kb.status}</span></span>
+            {syncing && <span className="text-yellow-400 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Syncing...</span>}
+            {!syncing && kb.lastSyncStatus === 'COMPLETE' && (
+              <span>Last sync: <span className="text-green-400">Completed</span></span>
+            )}
+            {!syncing && kb.lastSyncStatus === 'FAILED' && (
+              <span>Last sync: <span className="text-red-400">Failed</span></span>
+            )}
+            {!syncing && kb.lastSyncStatus === 'IN_PROGRESS' && (
+              <span className="text-yellow-400">Sync in progress...</span>
+            )}
+            <span>Files: {kb.documentCount || 0}</span>
           </div>
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-primary-600/50 rounded-lg transition-colors"
-          >
-            {syncing ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
-            {syncing ? 'Syncing...' : 'Sync Now'}
-          </button>
         </div>
 
         {error && <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">{error}</div>}
