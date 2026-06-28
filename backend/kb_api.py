@@ -7,7 +7,7 @@ from utils import (
     create_response, get_user_from_event, handle_options, kbs_table, agents_table,
     DOCUMENTS_BUCKET, generate_kb_id, generate_agent_id,
     create_knowledge_base, delete_knowledge_base, start_ingestion,
-    get_ingestion_status, list_s3_files, get_presigned_url,
+    get_ingestion_status, list_s3_files, get_presigned_url, get_presigned_get_url,
     refresh_kb_status, refresh_document_count, refresh_kb_sync_status,
     bedrock_agent, s3, logger
 )
@@ -257,6 +257,8 @@ def handle_list_files(user_id, kb_id):
 
     doc_prefix = response['Item'].get('s3Prefix', f"users/{user_id}/kbs/{kb_id}/")
     files = list_s3_files(DOCUMENTS_BUCKET, doc_prefix)
+    for f in files:
+        f['presignedUrl'] = get_presigned_get_url(DOCUMENTS_BUCKET, f['key'])
     return create_response(200, {'files': files, 'count': len(files)})
 
 

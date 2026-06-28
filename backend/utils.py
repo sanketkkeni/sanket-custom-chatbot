@@ -387,3 +387,11 @@ def get_presigned_url(bucket, key, content_type=None):
     if content_type:
         params['ContentType'] = content_type
     return s3.generate_presigned_url('put_object', Params=params, ExpiresIn=3600)
+
+
+def get_presigned_get_url(bucket, key, expiration=3600):
+    return s3.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket, 'Key': key},
+        ExpiresIn=expiration
+    )

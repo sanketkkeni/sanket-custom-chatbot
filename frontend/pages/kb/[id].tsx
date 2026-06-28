@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Brain, ArrowLeft, Loader2, Upload, FileText, Trash2, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Brain, ArrowLeft, Loader2, Upload, FileText, FileSpreadsheet, Trash2, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { getKB, listFiles, deleteFile, startSync, getSyncStatus, getKBStats, getUploadUrls, uploadToS3 } from '../../lib/api';
 
@@ -216,21 +216,54 @@ export default function KBDetail() {
           {files.length === 0 ? (
             <div className="p-6 text-center text-gray-500">No files uploaded yet</div>
           ) : (
-            <div className="divide-y divide-dark-600">
-              {files.map((file: any) => (
-                <div key={file.key} className="flex items-center justify-between p-4 hover:bg-dark-700 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <div className="text-sm">{file.name}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-6">
+              {files.map((file: any) => {
+                const ext = file.name.split('.').pop()?.toLowerCase() || '';
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+
+                const getFileConfig = (e: string) => {
+                  const config: Record<string, { icon: any; color: string }> = {
+                    pdf: { icon: FileText, color: 'text-red-400' },
+                    txt: { icon: FileText, color: 'text-blue-400' },
+                    md: { icon: FileText, color: 'text-blue-400' },
+                    html: { icon: FileText, color: 'text-orange-400' },
+                    htm: { icon: FileText, color: 'text-orange-400' },
+                    csv: { icon: FileSpreadsheet, color: 'text-green-400' },
+                    doc: { icon: FileText, color: 'text-indigo-400' },
+                    docx: { icon: FileText, color: 'text-indigo-400' },
+                    xls: { icon: FileSpreadsheet, color: 'text-green-500' },
+                    xlsx: { icon: FileSpreadsheet, color: 'text-green-500' },
+                  };
+                  return config[e] || { icon: FileText, color: 'text-gray-400' };
+                };
+
+                const { icon: Icon, color } = getFileConfig(ext);
+
+                return (
+                  <div key={file.key} className="group relative glass-dark rounded-xl overflow-hidden hover:bg-dark-700 transition-colors">
+                    <a href={file.presignedUrl} target="_blank" rel="noopener noreferrer" className="block p-4">
+                      {isImage ? (
+                        <div className="aspect-square bg-dark-800 rounded-lg overflow-hidden mb-2">
+                          <img src={file.presignedUrl} alt={file.name} className="w-full h-full object-cover" loading="lazy" />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-24 mb-2">
+                          <Icon className={`h-12 w-12 ${color}`} />
+                          <span className="text-xs font-medium text-gray-500 mt-1 uppercase">.{ext}</span>
+                        </div>
+                      )}
+                      <div className="text-sm truncate" title={file.name}>{file.name}</div>
                       <div className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)}KB</div>
-                    </div>
+                    </a>
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteFile(file.key.split('/').pop()); }}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-dark-800/80 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-all"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <button onClick={() => handleDeleteFile(file.key.split('/').pop())} className="text-gray-500 hover:text-red-400 transition-colors">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
