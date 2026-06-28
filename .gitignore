@@ -41,6 +41,7 @@ frontend/test-results/
 
 # Build artifacts
 backend/layer/
+frontend/tsconfig.tsbuildinfo
 
 # Test artifacts
 *.png
