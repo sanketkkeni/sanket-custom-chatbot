@@ -88,14 +88,6 @@ export default function ChatPage() {
               <p className="text-xs text-gray-400">Chat with your knowledge base</p>
             </div>
           </div>
-          {conversationId && (
-            <Link
-              href={`/history`}
-              className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-1"
-            >
-              <ExternalLink className="h-4 w-4" /> View History
-            </Link>
-          )}
         </div>
       </header>
 

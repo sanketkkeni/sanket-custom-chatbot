@@ -102,10 +102,6 @@ export default function Dashboard() {
             <LayoutDashboard className="h-5 w-5" />
             <span>Dashboard</span>
           </div>
-          <Link href="/history" onClick={() => setSidebarOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-dark-600 transition-colors">
-            <Clock className="h-5 w-5" />
-            <span>History</span>
-          </Link>
         </nav>
 
         <div className="border-t border-dark-600 pt-4">
@@ -208,4 +204,3 @@ export default function Dashboard() {
 }
 
 function LayoutDashboard(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>; }
-function Clock(props: any) { return <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>; }

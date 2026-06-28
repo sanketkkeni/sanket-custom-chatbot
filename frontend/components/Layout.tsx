@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { Brain, LayoutDashboard, Clock } from 'lucide-react';
+import { Brain, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 
@@ -28,15 +28,6 @@ export default function Layout({ children }: LayoutProps) {
           >
             <LayoutDashboard className="h-5 w-5" />
             <span>Dashboard</span>
-          </Link>
-          <Link
-            href="/history"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-              router.pathname === '/history' ? 'bg-dark-600 text-primary-400' : 'text-gray-400 hover:text-white hover:bg-dark-600'
-            }`}
-          >
-            <Clock className="h-5 w-5" />
-            <span>History</span>
           </Link>
         </nav>
 
