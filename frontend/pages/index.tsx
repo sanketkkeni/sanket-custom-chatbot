@@ -65,7 +65,7 @@ export default function Home() {
             <div className="w-16 h-16 bg-primary-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <LayoutDashboard className="h-8 w-8 text-primary-400" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Manage Knowledge Bases</h3>
+            <h3 className="text-xl font-semibold mb-2">Manage Topics</h3>
             <p className="text-gray-400">
               Upload documents, create knowledge bases, and sync with Bedrock.
             </p>

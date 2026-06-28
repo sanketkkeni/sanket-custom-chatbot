@@ -35,7 +35,7 @@ export default function KBCreateModal({ open, onClose, onCreated }: KBCreateModa
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-dark-800 border border-dark-600 rounded-2xl p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">Create Knowledge Base</h2>
+          <h2 className="text-xl font-bold">Create New Topic</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white"><X className="h-5 w-5" /></button>
         </div>
 

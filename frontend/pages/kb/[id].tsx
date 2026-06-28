@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Brain, ArrowLeft, Loader2, Upload, FileText, FileSpreadsheet, Trash2, AlertCircle } from 'lucide-react';
+import { Brain, ArrowLeft, Loader2, Upload, FileText, FileSpreadsheet, Trash2, AlertCircle, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { getKB, listFiles, deleteFile, startSync, getSyncStatus, getKBStats, getUploadUrls, uploadToS3 } from '../../lib/api';
 
@@ -123,7 +123,15 @@ export default function KBDetail() {
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{kb.name}</h1>
+          <div className="flex items-start justify-between mb-2">
+            <h1 className="text-3xl font-bold">{kb.name}</h1>
+            <button
+              onClick={() => router.push(`/chat/${id}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors text-sm whitespace-nowrap"
+            >
+              <MessageSquare className="h-4 w-4" /> Chat with AI
+            </button>
+          </div>
           <div className="flex gap-4 text-sm text-gray-400">
             <span>Status: <span className={kb.status === 'ACTIVE' ? 'text-green-400' : 'text-yellow-400'}>{kb.status}</span></span>
             {syncing && <span className="text-yellow-400 flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Syncing...</span>}
