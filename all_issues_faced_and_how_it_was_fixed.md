@@ -495,3 +495,50 @@ Compress-Archive -Path (Join-Path $LAYER_DIR "python") -DestinationPath pillow-l
 
 **Files changed**:
 - `backend/build.ps1` — Changed `python\*` to `python` in `Compress-Archive` on line 31
+
+---
+
+## Issue 23: EC2 SSM Agent Goes Offline During Docker Pull (OOM Kill on t3.micro)
+
+**Symptom**: After EC2 instance launch with user data to install Docker and pull Open Web UI, the SSM agent pinged once (`Online`) then went `ConnectionLost` permanently. CloudFront returned 504. The container was never reachable.
+
+**Root Cause**: The t3.micro has only 916 MB RAM. The `docker pull` for Open Web UI (1-2 GB image) triggered high memory pressure during layer download and extraction. The Linux kernel OOM killer killed the SSM agent process to free memory. Without SSM, the instance was unreachable for debugging. The Docker pull did eventually complete (console logs showed it finished), but the SSM agent never recovered.
+
+**Fix**: Three changes to user data in `infrastructure/modules/openwebui-ec2/main.tf`:
+1. **Swap file**: Created a 1 GB swap file (`dd if=/dev/zero of=/swapfile bs=1M count=1024`) before installing Docker. This provides memory headroom during the pull so the kernel doesn't need to OOM-kill processes.
+2. **SSM agent OOM protection**: Set `oom_score_adj = -1000` on the `amazon-ssm-agent` process, making it immune to OOM kills.
+3. **Reduced container memory**: Changed `--memory="768m"` to `--memory="512m"` and `--memory-reservation="384m"` to `--memory-reservation="256m"` so the container doesn't compete for resources with system processes.
+
+**Files changed**:
+- `infrastructure/modules/openwebui-ec2/main.tf` — Added swap creation, SSM oom_score_adj, reduced container memory limits
+
+---
+
+## Issue 24: Docker Pull Fails With "no space left on device" on 8 GB Root Volume
+
+**Symptom**: After the swap fix (Issue 23), Docker pull progressed further but eventually failed with `failed to register layer: write /usr/lib/.../libtorch_cpu.so: no space left on device`. The container was never created.
+
+**Root Cause**: The default Amazon Linux 2023 AMI root EBS volume is only 8 GB. Amazon Linux itself uses ~2-3 GB, Docker adds ~1 GB, and the Open Web UI image (uncompressed) is ~3-4 GB — exceeding the available space. The 1 GB swap file also consumed additional disk space. The torch library within the image is particularly large (libtorch_cpu.so alone is hundreds of MB).
+
+**Fix**: Added `root_block_device` with `volume_size = 20` and `volume_type = "gp3"` to the `aws_instance.openwebui` resource. This provides enough space for the OS, Docker, the image layers, and the swap file.
+
+**Files changed**:
+- `infrastructure/modules/openwebui-ec2/main.tf` — Added `root_block_device` block with 20 GB volume
+
+---
+
+## Issue 25: CloudFront Origin Points to Destroyed EC2 Instance After Rebuild
+
+**Symptom**: After EC2 instance was recreated (tainted + terraform apply), CloudFront continued returning 504. The new instance was running and responding on port 3000 directly, but CloudFront couldn't reach it.
+
+**Root Cause**: Terraform apply was aborted mid-way during instance creation. The new EC2 instance was created but the CloudFront distribution's origin `domain_name` (which references `aws_instance.openwebui.public_dns`) was never updated in the real AWS resource. The terraform state still showed the old DNS, and the manual CloudFront update was reverted by the subsequent terraform refresh.
+
+**Fix**: Directly updated the CloudFront distribution origin via AWS CLI:
+1. Retrieved the current distribution config with `get-distribution-config`
+2. Changed `DomainName` from the old EC2 DNS to the new one (`ec2-100-48-190-44.compute-1.amazonaws.com`)
+3. Applied with `update-distribution --if-match <etag>`
+4. Verified 200 OK through CloudFront after deployment
+
+**Files changed**:
+- No terraform file changes — fixed directly via AWS CLI (manual drift correction)
+
