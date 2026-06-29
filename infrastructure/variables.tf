@@ -156,3 +156,10 @@ variable "frontend_url" {
   type        = string
   default     = "http://localhost:3000"
 }
+
+variable "openai_api_key" {
+  description = "API key for the OpenAI-compatible proxy (used by Open Web UI). Leave empty to auto-generate."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

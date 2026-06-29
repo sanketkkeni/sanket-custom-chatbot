@@ -35,4 +35,12 @@ Write-Host "Created pillow-layer.zip"
 Compress-Archive -Path (Join-Path $PSScriptRoot "image_processor.py") -DestinationPath (Join-Path $OUTPUT_DIR "image_processor.zip") -Force
 Write-Host "Created image_processor.zip"
 
+# Create openai_proxy.zip for the Open Web UI proxy
+$OPENWEBUI_OUTPUT_DIR = Join-Path $OUTPUT_DIR "modules\openwebui"
+if (-not (Test-Path $OPENWEBUI_OUTPUT_DIR)) {
+    New-Item -ItemType Directory -Path $OPENWEBUI_OUTPUT_DIR -Force | Out-Null
+}
+Compress-Archive -Path (Join-Path $PSScriptRoot "openwebui\openai_proxy.py"),(Join-Path $PSScriptRoot "utils.py") -DestinationPath (Join-Path $OPENWEBUI_OUTPUT_DIR "openai_proxy.zip") -Force
+Write-Host "Created openai_proxy.zip"
+
 Write-Host "Build complete!"

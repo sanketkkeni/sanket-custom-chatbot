@@ -10,7 +10,7 @@ resource "aws_apigatewayv2_api" "rest_api" {
   cors_configuration {
     allow_origins  = ["*"]
     allow_methods  = ["GET", "POST", "DELETE", "OPTIONS"]
-    allow_headers  = ["Content-Type", "Authorization", "X-Requested-With"]
+    allow_headers  = ["Content-Type", "Authorization", "X-Requested-With", "X-Api-Key", "x-api-key"]
     expose_headers = []
     max_age        = 3600
   }

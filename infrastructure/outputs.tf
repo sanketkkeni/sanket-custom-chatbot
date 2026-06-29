@@ -103,3 +103,36 @@ output "frontend_config" {
     rest_api_endpoint   = aws_apigatewayv2_api.rest_api.api_endpoint
   }
 }
+
+# OpenAI Proxy Outputs
+output "openai_proxy_function_name" {
+  description = "The name of the OpenAI proxy Lambda function"
+  value       = module.openwebui.openai_proxy_function_name
+}
+
+output "openwebui_endpoint" {
+  description = "Base URL for the OpenAI-compatible endpoint (configure in Open Web UI as OpenAI provider URL + /v1)"
+  value       = "${aws_apigatewayv2_api.rest_api.api_endpoint}/v1"
+}
+
+output "openai_api_key" {
+  description = "API key for the OpenAI-compatible proxy (used by Open Web UI)"
+  value       = var.openai_api_key != "" ? var.openai_api_key : random_password.openai_api_key.result
+  sensitive   = true
+}
+
+# Open Web UI EC2 Outputs
+output "openwebui_ec2_public_ip" {
+  description = "Public IP of the Open Web UI EC2 instance"
+  value       = module.openwebui_ec2.ec2_public_ip
+}
+
+output "openwebui_ec2_url" {
+  description = "URL to access Open Web UI"
+  value       = module.openwebui_ec2.openwebui_url
+}
+
+output "openwebui_oidc_client_id" {
+  description = "Cognito OIDC client ID for Open Web UI"
+  value       = module.openwebui_ec2.oidc_client_id
+}
